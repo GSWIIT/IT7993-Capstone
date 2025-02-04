@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Registration</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        input, button { padding: 10px; margin: 10px; }
+        #message { font-weight: bold; color: red; }
+    </style>
+</head>
+<body>
+    <h1>Register Your Face</h1>
+    <input type="text" id="face_name" placeholder="Enter your name">
+    <button onclick="registerFace()">Register</button>
+    <button onclick="clearInput()">Clear</button>
+    <p id="message"></p>
+
+    <script>
+        function registerFace() {
+            let name = document.getElementById("face_name").value;
+            if (!name) {
+                document.getElementById("message").innerText = "Please enter a name!";
+                return;
+            }
+
+            let formData = new FormData();
+            formData.append("face_name", name);
+
+            fetch("/register", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("message").innerText = data.success || data.error;
+                document.getElementById("message").innerText = ""
+            })
+            .catch(error => {
+                document.getElementById("message").innerText = "Error registering face";
+            });
+        }
+        function clearInput() {
+            document.getElementById("face_name").value = "";  // 🔹 Clears the text input field
+            document.getElementById("message").innerText = "";  // 🔹 Clears the message
+        }
+    </script>
+</body>
+</html>
