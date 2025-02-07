@@ -1,10 +1,10 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "C:\\Users\\techsupp\\Desktop\\Project\\contracts\\HelloWorld.sol": {
-      "lastModificationDate": 1738524390616,
-      "contentHash": "caeeee0ee2729631b8c7ca11cfc6221c",
-      "sourceName": "contracts/HelloWorld.sol",
+    "C:\\Users\\operators\\Desktop\\IT7993-Capstone\\BlockChain\\contracts\\FaceGuard.sol": {
+      "lastModificationDate": 1738887570044,
+      "contentHash": "a15c82c98b98abf635121ddaf3511f58",
+      "sourceName": "contracts/FaceGuard.sol",
       "solcConfig": {
         "version": "0.8.0",
         "settings": {
@@ -30,10 +30,10 @@
       },
       "imports": [],
       "versionPragmas": [
-        ">=0.7.3"
+        "^0.8.0"
       ],
       "artifacts": [
-        "HelloWorld"
+        "FaceGuard"
       ]
     }
   }
