@@ -15,6 +15,7 @@
     <input type="text" id="face_name" placeholder="Enter your name">
     <button onclick="registerFace()">Register</button>
     <button onclick="clearInput()">Clear</button>
+    <button onclick="scanFace()">Scan</button>
     <p id="message"></p>
 
     <script>
@@ -41,6 +42,26 @@
                 document.getElementById("message").innerText = "Error registering face";
             });
         }
+        
+        function scanFace() {
+            document.getElementById("message").innerText = "Debugging";
+            let name = document.getElementById("face_name").value;
+
+            let formData = new FormData();
+            formData.append("face_name", name);
+            fetch("/scan", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("message").innerText = data.success || data.error;
+            })
+            .catch(error => {
+                document.getElementById("message").innerText = "Error registering face";
+            });  
+        }
+
         function clearInput() {
             document.getElementById("face_name").value = "";  // 🔹 Clears the text input field
             document.getElementById("message").innerText = "";  // 🔹 Clears the message

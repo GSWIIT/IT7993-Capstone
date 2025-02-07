@@ -12,11 +12,6 @@ import subprocess
 import numpy as np
 import face_recognition
 
-print(f"Debug: Running face_taker.py from {os.getcwd()}")
-print(f"Debug: Python version: {sys.version}")
-print(f"Debug: Arguments received: {sys.argv}")
-print(f"Debug: Checking if cascade file exists: {os.path.exists(PATHS['cascade_file'])}")
-print(f"Debug: Checking if image directory exists: {os.path.exists(PATHS['image_dir'])}")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -204,7 +199,7 @@ if __name__ == '__main__':
             logger.error("This face is already registered. Duplicate entries are not allowed.")
             cam.release()
             cv2.destroyAllWindows()
-            exit(1)
+            sys.exit(1)
 
 
         # Assign a new ID and save
@@ -258,7 +253,7 @@ if __name__ == '__main__':
                 break
                 
         logger.info(f"Successfully captured {count} images")
-        
+        print(f"Debug: Received username -> {face_name}")
     except Exception as e:
         logger.error(f"An error occurred: {e}")
         
@@ -266,3 +261,5 @@ if __name__ == '__main__':
         if 'cam' in locals():
             cam.release()
         cv2.destroyAllWindows()
+print("Face capture completed successfully.")
+sys.exit(0)  # Exit with success
