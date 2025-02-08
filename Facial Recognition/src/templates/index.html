@@ -35,16 +35,22 @@
             })
             .then(response => response.json())
             .then(data => {
-                document.getElementById("message").innerText = data.success || data.error;
-                document.getElementById("message").innerText = ""
+                if (data.success) {
+                    document.getElementById("message").style.color = "green";
+                    document.getElementById("message").innerText = data.success;
+                } else {
+                    document.getElementById("message").style.color = "red";
+                    document.getElementById("message").innerText = data.error;
+                }
             })
             .catch(error => {
+                document.getElementById("message").style.color = "red";
                 document.getElementById("message").innerText = "Error registering face";
             });
         }
         
         function scanFace() {
-            document.getElementById("message").innerText = "Debugging";
+            document.getElementById("message").innerText = "Starting Face Recognition Scan...";
             let name = document.getElementById("face_name").value;
 
             let formData = new FormData();
@@ -55,10 +61,17 @@
             })
             .then(response => response.json())
             .then(data => {
-                document.getElementById("message").innerText = data.success || data.error;
+                if (data.success) {
+                    document.getElementById("message").style.color = "green";
+                    document.getElementById("message").innerText = data.success;
+                } else {
+                    document.getElementById("message").style.color = "red";
+                    document.getElementById("message").innerText = data.error;
+                }
             })
             .catch(error => {
-                document.getElementById("message").innerText = "Error registering face";
+                document.getElementById("message").style.color = "red";
+                document.getElementById("message").innerText = "Error during face recognition";
             });  
         }
 
