@@ -21,7 +21,7 @@ with open(abi_file_path, "r") as f:
 CONTRACT_ABI = abiJSONContent["abi"]
 
 def hash_password(password: str) -> str:
-    """Simulates hashing of password (should match how it's stored in contract)."""
+    #Simulates hashing of password (should match how it's stored in contract)
     return hashlib.sha256(password.encode()).hexdigest()
 
 # Connect to Sepolia
@@ -33,11 +33,11 @@ else:
     print("W3 connection failed!")
     exit
 
-#if script connected and did not exit, we should be able to load contract into variable
+#if script connected to Web3 successfully and did not exit, we should be able to load contract into variable
 # Load contract
 contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
 
-#to write to the contract, we have to prove we are the owners by using the private key of the wallet that deployed the contract
+#to write to the contract, we have to prove we are the owner by using the private key of the wallet that deployed the contract
 owner_account = w3.eth.account.from_key(PRIVATE_KEY)
 owner_address = owner_account.address
 w3.eth.default_account = owner_address
@@ -48,12 +48,12 @@ w3.eth.default_account = owner_address
 #print(f"Your Address: {owner_address}")
 #print("If the two addresses match above, then we have permission to write to the contract!")
 
-#this would be done in backend but for sim purposes, we do in in client
-print("register user")
+print("Register User Simulation\n")
 username = input("Enter username: ")
 password = input("Enter password: ")
 test_GUID = "616f0529-ea40-4ca6-9cfd-f32535b0f462"
 
+#this would be done in backend but for sim purposes, we do in in client
 password = hash_password(password)
 hashedFace = hash_password(str(random.random())) #simulates a face hash (just mades a hash made with a random number)
 
@@ -81,30 +81,43 @@ else:
     print("User does not exist! Proceeding to register user...")
 
 if userExists == False:
-    #register user
+    #estimate the cost of the ethereum transaction by predicting gas
+    estimated_gas = contract.functions.registerUser(username, password, hashedFace, test_GUID).estimate_gas({"from": owner_address})
+
+    #register user (use estimated gas & add an extra 50000 buffer to make sure transaction goes through)
     tx = contract.functions.registerUser(
         username, password, hashedFace, test_GUID
     ).build_transaction({
         "from": owner_address,
         "nonce": w3.eth.get_transaction_count(owner_address),
-        "gas": 2000000,
+        "gas": estimated_gas + 50000, 
         "gasPrice": w3.to_wei("10", "gwei")
     })
 
-    # Sign transaction
+    # Sign transaction with private key
     signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
 
-    # Send transaction
+    # Send transaction to blockchain
     tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
-    print("Transaction was sent to the blockchain... Waiting a few seconds...")
-    time.sleep(15)
+    # Wait for confirmation of transaction
+    receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
 
-    print("Checking to see if user exists now...")
-    user_obj = contract.functions.getUser(username).call()
-    print(user_obj)
-    if user_obj[0] == "":
-        userExists = False
+    # Print transaction status
+    if receipt.status == 1:
+        print(f"Transaction successful! Block: {receipt.blockNumber}")
+        print("Waiting a few more seconds...")
+        time.sleep(15)
+
+        print("Checking to see if user exists now...")
+        user_obj = contract.functions.getUser(username).call()
+        print(user_obj)
+        if user_obj[0] == "":
+            userExists = False
+            #this should not happen if transaction went through
+            print("The transaction went through but the user is still not found. It will show up eventually I guess")
+        else:
+            userExists = True
+            print("The user is now on the blockchain! The script was successful.")
     else:
-        userExists = True
-        print("The user is now on the blockchain! The script was successful.")
+        print("Transaction failed! User was not created.")
