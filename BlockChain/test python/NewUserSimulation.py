@@ -48,7 +48,7 @@ w3.eth.default_account = owner_address
 #print(f"Your Address: {owner_address}")
 #print("If the two addresses match above, then we have permission to write to the contract!")
 
-print("Register User Simulation\n")
+print("\nRegister User Simulation")
 username = input("Enter username: ")
 password = input("Enter password: ")
 test_GUID = "616f0529-ea40-4ca6-9cfd-f32535b0f462"

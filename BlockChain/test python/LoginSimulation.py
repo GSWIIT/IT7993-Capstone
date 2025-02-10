@@ -40,7 +40,7 @@ owner_account = w3.eth.account.from_key(PRIVATE_KEY)
 owner_address = owner_account.address
 w3.eth.default_account = owner_address
 
-print("login user simulation")
+print("\nLogin User Simulation")
 username = input("Enter username: ")
 password = input("Enter password: ")
 
