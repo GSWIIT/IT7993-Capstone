@@ -1,12 +1,23 @@
 from flask import Flask, render_template, request, jsonify
 import subprocess
 import logging
+import cv2
+import os
+import json
+from settings.settings import CAMERA, FACE_DETECTION, PATHS
+from face_recognizer import initialize_camera, load_names
 
 app = Flask(__name__)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
+# Load face recognizer and cascade classifier
+recognizer = cv2.face.LBPHFaceRecognizer_create()
+recognizer.read(PATHS['trainer_file'])
+face_cascade = cv2.CascadeClassifier(PATHS['cascade_file'])
+names = load_names(PATHS['names_file'])
 
 @app.route('/')
 def index():
@@ -43,21 +54,71 @@ def register():
         return jsonify({"error": f"Failed to register face: {str(e)}"})
     
 @app.route('/scan', methods=['POST'])
-def scan():
-    """Handle face recognition via Flask form."""
-   
+def scan_face():
+    input_name = request.form.get('face_name')
+    if not input_name:
+        return jsonify({"error": "No name provided"}), 400
+
     try:
-        logger.info(f"Starting face scan")
-        # Run face_recognition.py in background (no blocking)
-        result = subprocess.Popen(["python3", "./src/face_recognizer.py"], shell=False)
-        result.wait()
-        if result.returncode == 0:
-            return jsonify({"success": "Face recognized successfully!"})
+        cam = initialize_camera(CAMERA['index'])
+        if cam is None:
+            raise ValueError("Failed to initialize camera")
+
+        import time
+        start_time = time.time()
+        match_found = False
+
+        while time.time() - start_time < 10:  # Run for 10 seconds
+            ret, img = cam.read()
+            if not ret:
+                raise ValueError("Failed to grab frame")
+
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            faces = face_cascade.detectMultiScale(
+                gray,
+                scaleFactor=FACE_DETECTION['scale_factor'],
+                minNeighbors=FACE_DETECTION['min_neighbors'],
+                minSize=FACE_DETECTION['min_size']
+            )
+
+            for (x, y, w, h) in faces:
+                cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                id, confidence = recognizer.predict(gray[y:y+h, x:x+w])
+                recognized_name = names.get(str(id), "Unknown")
+                result = "MATCH"
+                if confidence <= 100:
+                    name = names.get(str(id), "Unknown")
+                    confidence_text = f"{confidence:.1f}%"
+                    
+                    # Display name and confidence
+                    cv2.putText(img, name, (x+5, y-5), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                    cv2.putText(img, confidence_text, (x+5, y+h-5), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 1)
+                cv2.imshow('Face Recognition', img)    
+               
+                if recognized_name == input_name:
+                    match_found = True
+                    break
+
+            cv2.imshow('Face Recognition', img)
+            if cv2.waitKey(1) & 0xFF == 27:  # ESC key to exit early
+                break
+
+        cv2.destroyAllWindows()
+
+        if match_found:
+            return jsonify({"success": f"MATCH - {input_name}"}), 200
         else:
-            return jsonify({"error": f"Face recognition failed with code {result.returncode}."})
+            return jsonify({"error": f"No match found for - {input_name}"}), 200
+
     except Exception as e:
-        logger.error(f"Failed to recognize face: {str(e)}")
-        return jsonify({"error": f"Failed to recognize face: {str(e)}"})
+        logger.error(f"An error occurred: {e}")
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        if 'cam' in locals():
+            cam.release()
     
 def print():
     output = "Sucessfully registered!"
