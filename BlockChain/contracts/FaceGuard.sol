@@ -3,51 +3,59 @@ pragma solidity ^0.8.0;
 
 contract FaceGuard {
     struct User {
-        string fullName;
         string username;
-        string facialHash;
+        string passwordHash;
+        string faceHash;
+        string[] permissions;
+        string applicationKey;
+        bool enabled;
     }
-
+    
     mapping(string => User) private users;
-    mapping(string => bool) private usernameExists;
-    address public owner;
-
-    event UserRegistered(string username, string fullName);
-
-    // Constructor: Initializes the contract with the deployer as the first user (optional)
-    constructor(string memory _fullName, string memory _username, string memory _facialHash) {
-        require(bytes(_fullName).length > 0, "Full name is required");
-        require(bytes(_username).length > 0, "Username is required");
-        require(bytes(_facialHash).length > 0, "Facial hash is required");
-
-        owner = msg.sender; // Set contract deployer as the owner
-        users[_username] = User(_fullName, _username, _facialHash);
-        usernameExists[_username] = true;
-
-        emit UserRegistered(_username, _fullName);
+    address private owner;
+    
+    event UserRegistered(string username, string applicationKey);
+    event PasswordUpdated(string username);
+    event FaceHashUpdated(string username);
+    event PermissionsUpdated(string username);
+    event UserToggled(string username, bool enabled);
+    
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only the contract owner can perform this action");
+        _;
     }
-
-    function registerUser(string memory _fullName, string memory _username, string memory _facialHash) public {
-        require(bytes(_fullName).length > 0, "Full name is required");
-        require(bytes(_username).length > 0, "Username is required");
-        require(bytes(_facialHash).length > 0, "Facial hash is required");
-        require(!usernameExists[_username], "Username already exists");
-
-        users[_username] = User({
-            fullName: _fullName,
-            username: _username,
-            facialHash: _facialHash
-        });
-
-        usernameExists[_username] = true;
-
-        emit UserRegistered(_username, _fullName);
+    
+    constructor() {
+        owner = msg.sender;
     }
-
-    function getUserByUsername(string memory _username) public view returns (string memory, string memory, string memory) {
-        require(usernameExists[_username], "User not found");
-
-        User memory user = users[_username];
-        return (user.fullName, user.username, user.facialHash);
+    
+    function registerUser(string memory username, string memory passwordHash, string memory faceHash, string memory applicationKey) public onlyOwner {
+        users[username] = User(username, passwordHash, faceHash, new string[](0), applicationKey, true);
+        emit UserRegistered(username, applicationKey);
+    }
+    
+    function updateUserPassword(string memory username, string memory newPasswordHash) public onlyOwner {
+        users[username].passwordHash = newPasswordHash;
+        emit PasswordUpdated(username);
+    }
+    
+    function updateUserFaceHash(string memory username, string memory newFaceHash) public onlyOwner {
+        users[username].faceHash = newFaceHash;
+        emit FaceHashUpdated(username);
+    }
+    
+    function editUserPermissions(string memory username, string[] memory newPermissions) public onlyOwner {
+        users[username].permissions = newPermissions;
+        emit PermissionsUpdated(username);
+    }
+    
+    function toggleUser(string memory username) public onlyOwner {
+        users[username].enabled = !users[username].enabled;
+        emit UserToggled(username, users[username].enabled);
+    }
+    
+    function getUser(string memory username) public view returns (string memory, string memory, string memory, string[] memory, string memory, bool) {
+        User memory user = users[username];
+        return (user.username, user.passwordHash, user.faceHash, user.permissions, user.applicationKey, user.enabled);
     }
 }
