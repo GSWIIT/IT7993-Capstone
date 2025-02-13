@@ -4,8 +4,17 @@ import json
 from web3 import Web3
 import hashlib
 import time
+import cv2
+import numpy as np
+import base64
+from PIL import Image
+import imagehash
+import io
 
 login_bp = Blueprint('login', __name__, template_folder='templates')
+
+# Load OpenCV's pre-trained face detection model
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 
 def hash_password(password: str) -> str:
     """Simulates hashing of password (should match how it's stored in contract)."""
@@ -138,3 +147,81 @@ def signup():
     else:
         print("Transaction failed! User was not created.")
         return jsonify({"success": False, "reason": "Transaction failed."})
+    
+def generate_face_hash(face_img):
+    """Generate a hash from the detected face for authentication purposes."""
+    face_gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)  # Convert to grayscale
+    _, face_encoded = cv2.imencode('.png', face_gray)  # Encode face as PNG
+    face_bytes = face_encoded.tobytes()  # Convert to bytes
+    return hashlib.sha256(face_bytes).hexdigest()[:8]  # Generate SHA-256 hash
+
+def perceptual_hash(base64_string):
+    image = base64_to_image(base64_string)
+    image = image.convert("L")
+    return imagehash.phash(image)  # pHash is good for similarity detection
+
+def base64_to_image(base64_string):
+    # Decode the base64 string into binary data
+    image_data = base64.b64decode(base64_string)
+
+    # Convert binary data to a BytesIO stream
+    image_stream = io.BytesIO(image_data)
+
+    # Open the image using PIL
+    image = Image.open(image_stream)
+
+    return image
+
+@login_bp.route('/face', methods=['POST'])
+def run_face_recognition():
+    #try:
+    # Receive JSON data
+    print("Trying face recognition...")
+    data = request.get_json()
+    img_base64 = data.get("facePNG1")
+    img_base64_2 = data.get("facePNG2")
+
+    hash1 = perceptual_hash(img_base64)
+    hash2 = perceptual_hash(img_base64_2)
+
+    print(hash1, hash2)  # Print perceptual hashes
+    print(hash1 - hash2)  # Compute Hamming distance
+    
+    # Decode Base64 back to an image
+    img_data = base64.b64decode(img_base64)
+    np_arr = np.frombuffer(img_data, np.uint8)
+    img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+    # Convert to grayscale for better face detection
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # Detect faces
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+
+    faces_list = []
+    face_hashes = []
+
+    for (x, y, w, h) in faces:
+        # Draw rectangle around face
+        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+        # Extract face ROI (Region of Interest)
+        face_roi = img[y:y + h, x:x + w]
+
+        # Generate hash for the face
+        face_hash = generate_face_hash(face_roi)
+        face_hashes.append(face_hash)
+
+        faces_list.append({"x": int(x), "y": int(y), "w": int(w), "h": int(h), "hash": face_hash})
+
+    # Encode the image with bounding box to Base64
+    _, img_encoded = cv2.imencode('.png', img)
+    img_base64_out = base64.b64encode(img_encoded).decode('utf-8')
+    
+    print("done")
+    # Return face coordinates
+    faces_list = [{"x": int(x), "y": int(y), "w": int(w), "h": int(h)} for (x, y, w, h) in faces]
+
+    return jsonify({"success": True, "reason": "OpenCV ran successfully.", "faces_detected": len(faces_list), "faces": faces_list, "face_hashes": face_hashes, "image": img_base64_out, "hamming_distance": hash1 - hash2})
+    #except Exception as e:
+        #return jsonify({"success": False, "reason": str(e)})

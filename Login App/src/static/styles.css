@@ -199,6 +199,7 @@ a {
     border: 2px solid red;
     border-radius: 5px;
     inline-size: 300px;
+    text-align: center;
 }
 
 .login_prompt_success {
@@ -209,6 +210,7 @@ a {
     border: 2px solid green;
     border-radius: 5px;
     inline-size: 300px;
+    text-align: center;
 }
 
 /* Spinner animation */

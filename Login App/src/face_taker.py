@@ -93,7 +93,7 @@ def initialize_camera(camera_index: int = 0) -> Optional[cv2.VideoCapture]:
         cv2.VideoCapture or None: Initialized camera object
     """
     try:
-        cam = cv2.VideoCapture(camera_index)
+        cam = cv2.VideoCapture(0,cv2.CAP_DSHOW)
         if not cam.isOpened():
             logger.error("Could not open webcam")
             return None

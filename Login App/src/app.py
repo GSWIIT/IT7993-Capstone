@@ -7,6 +7,7 @@ import json
 from settings.settings import CAMERA, FACE_DETECTION, PATHS
 from face_recognizer import initialize_camera, load_names
 from login import login_bp  # Import the blueprint from login.py
+from home import home_bp  # Import the blueprint from login.py
 
 app = Flask(__name__)
 
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 # Register Blueprints (added by Steven K)
 app.register_blueprint(login_bp, url_prefix='/auth')  # Prefix all login routes with /auth
+app.register_blueprint(home_bp, url_prefix='/home')  # Prefix all homepage routes with /home
 
 # Load face recognizer and cascade classifier
 recognizer = cv2.face.LBPHFaceRecognizer_create()

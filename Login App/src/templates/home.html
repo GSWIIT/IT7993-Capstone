@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Capture</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        video, canvas {
+            border: 2px solid black;
+            margin: 10px;
+        }
+        #photo-container {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Capture Your Profile Picture</h2>
+    
+    <video id="video" width="320" height="240" autoplay></video>
+    <br>
+    <button id="capture">Take Photo</button>
+    
+    <div id="photo-container">
+        <h3>Preview</h3>
+        <canvas id="canvas" width="320" height="240"></canvas>
+        <br>
+        <button id="upload">Upload Photo</button>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureButton = document.getElementById('capture');
+        const uploadButton = document.getElementById('upload');
+        const photoContainer = document.getElementById('photo-container');
+        const context = canvas.getContext('2d');
+
+        // Access webcam
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error("Error accessing webcam: ", err);
+                alert("Unable to access webcam.");
+            });
+
+        // Capture photo
+        captureButton.addEventListener('click', () => {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            photoContainer.style.display = 'block'; // Show the preview section
+        });
+
+        // Upload functionality (mock-up)
+        uploadButton.addEventListener('click', () => {
+            const imageData = canvas.toDataURL('image/png');
+            console.log("Image ready to be uploaded:", imageData);
+
+            // You can send `imageData` to your server using fetch or AJAX.
+            alert("Photo captured! You can now upload it.");
+        });
+    </script>
+
+</body>
+</html>

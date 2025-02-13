@@ -6,6 +6,92 @@
     <title>Login</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <script>
+        let canvas = null;
+        let context = null; // This should now work
+        let video = null;
+        let photoContainer = null;
+        let base64Image1 = null;
+        let base64Image2 = null;
+
+        function startWebcamCapture() {
+            canvas = document.getElementById('canvas');
+            context = canvas.getContext('2d'); // This should now work
+            video = document.getElementById('video');
+            photoContainer = document.getElementById('photo-container');
+
+            // Access webcam
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.srcObject = stream;
+                })
+                .catch(err => {
+                    console.error("Error accessing webcam: ", err);
+                    alert("Unable to access webcam.");
+                });
+        }
+
+        function capturePhoto() {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            photoContainer.style.display = 'block'; // Show the preview section
+        }
+
+        function uploadForRecognition() {
+            if(base64Image1 == null)
+            {
+                base64Image1 = canvas.toDataURL("image/png").split(',')[1];  // Remove header
+                return
+            }
+
+            if(base64Image2 == null)
+            {
+                base64Image2 = canvas.toDataURL("image/png").split(',')[1];  // Remove header
+            }
+
+            let response = fetch("{{ url_for('login.run_face_recognition') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ facePNG1: base64Image1, facePNG2: base64Image2 })
+            })
+            .then(response => response.json())
+            .then(result => {
+                displayLoadingPrompt(result.reason, result.success)
+                if (result.image) {
+                    let img = new Image();
+
+                    img.onload = function () {
+                        // Resize canvas to match image dimensions
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+
+                        // Draw the image on the canvas
+                        context.drawImage(img, 0, 0, img.width, img.height);
+                    };
+
+                    // Set image source from Base64
+                    img.src = "data:image/png;base64," + result.image;
+                }
+
+                if(result.hamming_distance <= 5)
+                {
+                    displayLoadingPrompt("Hamming Distance: " + result.hamming_distance + ". Similarity check passed!", true)
+                }
+                else
+                {
+                    displayLoadingPrompt("Hamming Distance: " + result.hamming_distance + ". Similarity check failed! Please try again.", false)
+                }
+            });
+        }
+
+        //for login & signup functionality
+
+        function displayCapturePhotoOverlay() {
+            document.getElementById("loadingOverlay").style.display = "flex";
+            document.getElementById("loadingPromptOverlay").style.display = "none";
+            document.getElementById("loadingGraphics").style.display = "none";
+            document.getElementById("photoUploadOverlay").style.display = "block";
+            startWebcamCapture();
+        }
+
         function displayLoadingOverlay() {
             // Show the loading overlay
             document.getElementById("loadingPromptOverlay").style.display = "none";
@@ -118,6 +204,7 @@
 </head>
 
 <body>
+    <button onclick="displayCapturePhotoOverlay()">Get Face Data</button>
     <div class="login_signup_container">
         <div class="login_signup_column_left">
             <div class="login_signup_center_left">
@@ -170,15 +257,30 @@
 
     <div id="loadingOverlay" class="loading-overlay" style="display: none;">
         <div class="loading-box">
-            <div id="loadingGraphics">
+            <div id="loadingGraphics" style="display: none;">
                 <img src="{{ url_for('static', filename='ethereum.png') }}" alt="Ethereum Logo" class="loading-image">
                 <div class="spinner"></div>
                 <p>Please wait (this may take a minute)...</p>
             </div>
             <div id="loadingPromptOverlay" style="display: none;">
                 <img id=loadingPromptImage src="{{ url_for('static', filename='error icon.png') }}" alt="Ethereum Logo" class="error-image">
-                <p id=loadingPromptMessage class="login_prompt_text">ERROR: Username already exists! Please use a unique username.</p>
+                <p id=loadingPromptMessage class="login_prompt_text"></p>
                 <button onclick="closeLoadingPrompt()">Ok</button>
+            </div>
+            <div id="photoUploadOverlay" style="display: none;">
+                <h2>Capture Your Picture</h2>
+                <p>Your face is needed for multifactor authentication. Please take a picture of yourself to continue.</p>
+    
+                <video id="video" width="320" height="240" autoplay></video>
+                <br>
+                <button id="capture" onclick="capturePhoto()">Take Photo</button>
+                
+                <div id="photo-container">
+                    <h3>Preview</h3>
+                    <canvas id="canvas" width="320" height="240"></canvas>
+                    <br>
+                    <button id="upload" onclick="uploadForRecognition()">Upload Photo</button>
+                </div>
             </div>
         </div>
     </div>
