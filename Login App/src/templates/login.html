@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script>
+        function displayLoadingOverlay() {
+            // Show the loading overlay
+            document.getElementById("loadingPromptOverlay").style.display = "none";
+            document.getElementById("loadingOverlay").style.display = "flex";
+            document.getElementById("loadingGraphics").style.display = "block";
+        }
+
+        function displayLoadingPrompt(message) {
+            document.getElementById("loadingGraphics").style.display = "none";
+            document.getElementById("loadingPromptMessage").innerHTML = message;
+            document.getElementById("loadingPromptOverlay").style.display = "block";
+        }
+
+        function closeLoadingPrompt() {
+            document.getElementById("loadingOverlay").style.display = "none";
+        }
+
+        function showLoginMessage(message) {
+            document.getElementById("loginMessageDiv").innerHTML = message;
+            document.getElementById("loginMessageDiv").style.display = "block";
+        }
+
+        function showSignupMessage(message) {
+            document.getElementById("signupMessage").innerHTML = message;
+            document.getElementById("signupMessageDiv").style.display = "block";
+        }
+
+        function onPreSignUpClick() {
+            document.getElementById("initial_signup_div").style.display = "none";
+            document.getElementById("registration_signup_div").style.display = "block";
+        }
+
+        function onSignUpClick() {
+            let username = document.getElementById("signup_username").value;
+            let password = document.getElementById("signup_password").value;
+            let password_confirm = document.getElementById("signup_password_confirm").value;
+
+            if(username == "")
+            {
+                showSignupMessage("Error: Username cannot be blank.")
+                return
+            }
+
+            if(password == "")
+            {
+                showSignupMessage("Error: Password cannot be blank.")
+                return
+            }
+
+            displayLoadingOverlay()
+
+            if(password != password_confirm)
+            {
+                //display login error
+                showSignupMessage("Error: Passwords do not match.")
+                return
+            }
+
+            // Step 1: Send credentials via POST
+            let response = fetch("{{ url_for('login.signup') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: username, password: password })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if(result.success == false)
+                {
+                    displayLoadingPrompt(result.reason)
+                }
+                else
+                {
+                    // Hide the loading overlay once the response is received
+                    document.getElementById("loadingOverlay").style.display = "none";
+                }
+            });
+        }
+    </script>
+</head>
+
+<body>
+    <div class="login_signup_container">
+        <div class="login_signup_column_left">
+            <div class="login_signup_center_left">
+                <form [formGroup]="loginFormComponent" method="post">
+                    <h2 class="small_padding">Sign In</h2>
+                    <div id="loginMessageDiv" class="small_padding" style="display: none;">
+                        <p id=loginMessage class="error_message"></p>
+                    </div>
+                    <div>
+                        <div class="small_padding" formGroupName="login">
+                            <input type="email" id="login_email" placeholder="Email" formControlName="email">
+                        </div>
+                        <div class="small_padding" formGroupName="login">
+                            <input type="password" id="login_password" placeholder="Password" formControlName="password">
+                        </div>
+                    </div>
+                    <br>
+                    <button (click)="onSignInClick()">Sign In</button>
+                </form>
+            </div>
+        </div>
+        <div class="login_signup_column_right">
+            <div class="login_signup_center_right">
+                <div id="initial_signup_div" style="display: block;">
+                    <h2 class="white_text">New User?</h2>
+                    <p class="medium_padding white_text">No worries! Click the button below to create a free account with us.</p>
+                    <button onclick="onPreSignUpClick()">Sign Up</button>
+                </div>
+                <div id="registration_signup_div" style="display: none;">
+                    <h2 class="small_padding white_text">Create Account</h2>
+                    <div id="signupMessageDiv" class="small_padding" formGroupName="signup" style="display: none;">
+                        <p id=signupMessage class="error_message">{{signupErrorMessage}}</p>
+                    </div>
+                    <div class="small_padding" formGroupName="signup">
+                        <input type="text" class="white_outline" id="signup_username" placeholder="Your New Username" name="username">
+                    </div>
+                    <div class="small_padding" formGroupName="signup">
+                        <input type="password" class="white_outline" id="signup_password" placeholder="Your Password" name="password">
+                    </div>
+                    <div class="small_padding" formGroupName="signup">
+                        <input type="password" class="white_outline" id="signup_password_confirm" placeholder="Confirm Password" name="password_confirm">
+                    </div>
+                    <div class="small_padding">
+                        <button onclick="onSignUpClick()">Sign Up</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-box">
+            <div id="loadingGraphics">
+                <img src="{{ url_for('static', filename='ethereum.png') }}" alt="Ethereum Logo" class="loading-image">
+                <div class="spinner"></div>
+                <p>Please wait (this may take a minute)...</p>
+            </div>
+            <div id="loadingPromptOverlay" style="display: none;">
+                <img src="{{ url_for('static', filename='error icon.png') }}" alt="Ethereum Logo" class="error-image">
+                <p id=loadingPromptMessage class="login_prompt_text">ERROR: Username already exists! Please use a unique username.</p>
+                <button onclick="closeLoadingPrompt()">Ok</button>
+            </div>
+        </div>
+    </div>
+</body>
