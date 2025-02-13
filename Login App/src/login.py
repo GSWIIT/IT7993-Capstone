@@ -57,32 +57,30 @@ w3.eth.default_account = owner_address
 
 @login_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+    if request.method == "GET":
+        return render_template('login.html')
+    else:
+        data = request.get_json()
+        username = data.get("username")
+        password = data.get("password")
         
         password = hash_password(password)
-        userExists = False
-        passwordLoginSuccess = False
 
         user_obj = contract.functions.getUser(username).call()
         print(user_obj)
         if user_obj[0] == "":
             print("The username and/or password is incorrect.")
-            return "The username and/or password is incorrect."
+            return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
         else:
-            userExists = True
             #now we compare the password hashes to see if they match
             if password == user_obj[1]:
                 print("Username and password match! First portion of login was successful!")
-                return "Username and password match! First portion of login was successful!"
-                passwordLoginSuccess = True
+                return jsonify({"success": True, "reason": "Username and password match! Login was successful!"})
             else:
                 print("The password entered is incorrect.")
-                return "Invalid credentials, try again."
-    else:
-        return render_template('login.html')
-    
+                return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
+
+
 @login_bp.route('/signup', methods=['POST'])
 def signup():
     data = request.get_json()
@@ -94,7 +92,7 @@ def signup():
     time.sleep(5)
 
     if result == True:
-        return jsonify({"success": False, "reason": "Username already exists."})
+        return jsonify({"success": False, "reason": "ERROR: Username already exists on the smart contract! Please create a unique username to continue."})
     
     password = hash_password(password)
 

@@ -191,12 +191,22 @@ a {
     margin: 5px;
 }
 
-.login_prompt_text {
+.login_prompt_error {
     color: red;
     background-color: pink;
     padding: 10px;
     margin: 10px;
     border: 2px solid red;
+    border-radius: 5px;
+    inline-size: 300px;
+}
+
+.login_prompt_success {
+    color: green;
+    background-color: lightgreen;
+    padding: 10px;
+    margin: 10px;
+    border: 2px solid green;
     border-radius: 5px;
     inline-size: 300px;
 }

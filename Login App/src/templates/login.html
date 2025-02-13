@@ -13,10 +13,21 @@
             document.getElementById("loadingGraphics").style.display = "block";
         }
 
-        function displayLoadingPrompt(message) {
+        function displayLoadingPrompt(message, success) {
             document.getElementById("loadingGraphics").style.display = "none";
             document.getElementById("loadingPromptMessage").innerHTML = message;
             document.getElementById("loadingPromptOverlay").style.display = "block";
+
+            if (success)
+            {
+                document.getElementById("loadingPromptImage").src = "{{ url_for('static', filename='ethereum.png') }}";
+                document.getElementById("loadingPromptMessage").className = "login_prompt_success"
+            }
+            else
+            {
+                document.getElementById("loadingPromptImage").src = "{{ url_for('static', filename='error icon.png') }}";
+                document.getElementById("loadingPromptMessage").className = "login_prompt_error"
+            }
         }
 
         function closeLoadingPrompt() {
@@ -24,13 +35,41 @@
         }
 
         function showLoginMessage(message) {
-            document.getElementById("loginMessageDiv").innerHTML = message;
+            document.getElementById("loginMessage").innerHTML = message;
             document.getElementById("loginMessageDiv").style.display = "block";
         }
 
         function showSignupMessage(message) {
             document.getElementById("signupMessage").innerHTML = message;
             document.getElementById("signupMessageDiv").style.display = "block";
+        }
+
+        function onSignInClick() {
+            let username = document.getElementById("login_username").value;
+            let password = document.getElementById("login_password").value;
+
+            if(username == "")
+            {
+                showLoginMessage("Error: Username cannot be blank.")
+                return
+            }
+
+            if(password == "")
+            {
+                showLoginMessage("Error: Password cannot be blank.")
+                return
+            }
+
+            displayLoadingOverlay()
+            let response = fetch("{{ url_for('login.login') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: username, password: password })
+            })
+            .then(response => response.json())
+            .then(result => {
+                displayLoadingPrompt(result.reason, result.success)
+            });
         }
 
         function onPreSignUpClick() {
@@ -72,15 +111,7 @@
             })
             .then(response => response.json())
             .then(result => {
-                if(result.success == false)
-                {
-                    displayLoadingPrompt(result.reason)
-                }
-                else
-                {
-                    // Hide the loading overlay once the response is received
-                    document.getElementById("loadingOverlay").style.display = "none";
-                }
+                displayLoadingPrompt(result.reason, result.success)
             });
         }
     </script>
@@ -90,22 +121,22 @@
     <div class="login_signup_container">
         <div class="login_signup_column_left">
             <div class="login_signup_center_left">
-                <form [formGroup]="loginFormComponent" method="post">
+                <div>
                     <h2 class="small_padding">Sign In</h2>
                     <div id="loginMessageDiv" class="small_padding" style="display: none;">
                         <p id=loginMessage class="error_message"></p>
                     </div>
                     <div>
-                        <div class="small_padding" formGroupName="login">
-                            <input type="email" id="login_email" placeholder="Email" formControlName="email">
+                        <div class="small_padding">
+                            <input type="username" id="login_username" placeholder="Username">
                         </div>
-                        <div class="small_padding" formGroupName="login">
-                            <input type="password" id="login_password" placeholder="Password" formControlName="password">
+                        <div class="small_padding">
+                            <input type="password" id="login_password" placeholder="Password">
                         </div>
                     </div>
                     <br>
-                    <button (click)="onSignInClick()">Sign In</button>
-                </form>
+                    <button onclick="onSignInClick()">Sign In</button>
+                </div>
             </div>
         </div>
         <div class="login_signup_column_right">
@@ -145,7 +176,7 @@
                 <p>Please wait (this may take a minute)...</p>
             </div>
             <div id="loadingPromptOverlay" style="display: none;">
-                <img src="{{ url_for('static', filename='error icon.png') }}" alt="Ethereum Logo" class="error-image">
+                <img id=loadingPromptImage src="{{ url_for('static', filename='error icon.png') }}" alt="Ethereum Logo" class="error-image">
                 <p id=loadingPromptMessage class="login_prompt_text">ERROR: Username already exists! Please use a unique username.</p>
                 <button onclick="closeLoadingPrompt()">Ok</button>
             </div>
