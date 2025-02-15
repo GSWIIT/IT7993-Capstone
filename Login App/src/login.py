@@ -155,9 +155,9 @@ def generate_face_hash(face_img):
     face_bytes = face_encoded.tobytes()  # Convert to bytes
     return hashlib.sha256(face_bytes).hexdigest()[:8]  # Generate SHA-256 hash
 
-def perceptual_hash(base64_string):
+def perceptual_hash_from_base64(base64_string):
     image = base64_to_image(base64_string)
-    image = image.convert("L")
+    #image = image.convert("L")
     return imagehash.phash(image)  # pHash is good for similarity detection
 
 def base64_to_image(base64_string):
@@ -178,15 +178,82 @@ def run_face_recognition():
     # Receive JSON data
     print("Trying face recognition...")
     data = request.get_json()
-    img_base64 = data.get("facePNG1")
-    img_base64_2 = data.get("facePNG2")
+    img_array = data.get("faceArray")
 
-    hash1 = perceptual_hash(img_base64)
-    hash2 = perceptual_hash(img_base64_2)
-
-    print(hash1, hash2)  # Print perceptual hashes
-    print(hash1 - hash2)  # Compute Hamming distance
+    #make sure three images were passed
+    if(len(img_array) != 3):
+        return jsonify({"success": False, "reason": "Please send exactly three images for facial recognition."})
     
+    face_recognition_output = []
+
+    #first, check the three images to make sure only one face is detected in them
+    for index, img in enumerate(img_array):
+        # Decode Base64 back to an image
+        img_data = base64.b64decode(img)
+        np_arr = np.frombuffer(img_data, np.uint8)
+        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+        # Convert to grayscale for better face detection
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        
+        # Detect faces
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(50, 50))
+        if len(faces) < 1:
+            return jsonify({"success": False, "reason": "No face detected in image " + str((index + 1)) +". Please try again."})
+        if len(faces) > 1:
+            return jsonify({"success": False, "reason": "Too many faces detected in image " + str((index + 1)) +". Please try again (only one face should be present)."})
+
+        for (x, y, w, h) in faces:
+            padding = 10  # Increase this value for a larger margin
+
+            # Ensure the new coordinates are within the image boundaries
+            x_start = max(x - padding, 0)
+            y_start = max(y - padding, 0)
+            x_end = min(x + w + padding, img.shape[1])
+            y_end = min(y + h + padding, img.shape[0])
+
+            # Crop the face with extra space
+            #face_crop = img[y_start:y_end, x_start:x_end]
+            face_crop = img
+
+            cv2.rectangle(face_crop, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+            # Encode the detected face to Base64 (PNG)
+            _, detected_face_img_encoded = cv2.imencode('.png', face_crop)
+            face_img_base64_out = base64.b64encode(detected_face_img_encoded).decode('utf-8')
+
+            # Generate hash for the face
+            face_hash = perceptual_hash_from_base64(face_img_base64_out)
+            face_hash_string = str(face_hash)
+
+            face_recognition_output.append({"hash": face_hash, "hash_string": face_hash_string, "image": face_img_base64_out})
+
+    #finally, compare hamming distance of three detected faces for similarity comparison.
+    hamming_distance_limit = 5
+    hamming_distance_failed = False
+
+    for face_output in face_recognition_output:
+        for inner_face_ouput in face_recognition_output:
+            print("Comparing PHash: " + face_output.get("hash_string") + " to " + inner_face_ouput.get("hash_string"))
+            hamming_distance = (face_output.get("hash") - inner_face_ouput.get("hash"))
+            print("Hamming Distance: " + str(hamming_distance) + ".")
+            if hamming_distance > hamming_distance_limit:
+                print("Hamming Distance exceeds allowed limit. Face comparison failed.")
+                hamming_distance_failed = True
+
+    if hamming_distance_failed:
+        return jsonify({"success": False, "reason": "OpenCV ran successfully, but faces found in three photos do not match. Please ensure they are as similar as possible."})
+    else:
+        #need to take out imagehash from array because it is not JSON serializable
+        final_face_recognition_return_array = []
+
+        for output in face_recognition_output:
+            final_face_recognition_return_array.append({"hash": output.get("hash_string"), "image": output.get("image")})
+
+        return jsonify({"success": True, "reason": "OpenCV ran successfully. Face similarity check passed between three photos.", "output": final_face_recognition_return_array})
+    
+    return False
+
     # Decode Base64 back to an image
     img_data = base64.b64decode(img_base64)
     np_arr = np.frombuffer(img_data, np.uint8)
@@ -199,26 +266,37 @@ def run_face_recognition():
     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
 
     faces_list = []
-    face_hashes = []
 
     for (x, y, w, h) in faces:
-        # Draw rectangle around face
-        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        padding = 50  # Increase this value for a larger margin
 
-        # Extract face ROI (Region of Interest)
-        face_roi = img[y:y + h, x:x + w]
+        # Ensure the new coordinates are within the image boundaries
+        x_start = max(x - padding, 0)
+        y_start = max(y - padding, 0)
+        x_end = min(x + w + padding, img.shape[1])
+        y_end = min(y + h + padding, img.shape[0])
+
+        # Crop the face with extra space
+        face_crop = img[y_start:y_end, x_start:x_end]
+
+        # Encode the detected face with bounding box to Base64 (PNG)
+        _, detected_face_img_encoded = cv2.imencode('.png', face_crop)
+        face_img_base64_out = base64.b64encode(detected_face_img_encoded).decode('utf-8')
 
         # Generate hash for the face
-        face_hash = generate_face_hash(face_roi)
-        face_hashes.append(face_hash)
+        face_hash = perceptual_hash_from_base64(face_img_base64_out)
+        print(face_hash)
+
+        # Draw rectangle around face
+        cv2.rectangle(face_crop, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+        # Encode the final image with bounding box to Base64
+        _, img_encoded = cv2.imencode('.png', img)
+        img_base64_out = base64.b64encode(img_encoded).decode('utf-8')
 
         faces_list.append({"x": int(x), "y": int(y), "w": int(w), "h": int(h), "hash": face_hash})
-
-    # Encode the image with bounding box to Base64
-    _, img_encoded = cv2.imencode('.png', img)
-    img_base64_out = base64.b64encode(img_encoded).decode('utf-8')
     
-    print("done")
+
     # Return face coordinates
     faces_list = [{"x": int(x), "y": int(y), "w": int(w), "h": int(h)} for (x, y, w, h) in faces]
 
@@ -227,6 +305,6 @@ def run_face_recognition():
     if len(faces_list) > 1:
         return jsonify({"success": False, "reason": "Two or more faces detected! Only one face should be uploaded."})
     
-    return jsonify({"success": True, "reason": "OpenCV ran successfully.", "faces_detected": len(faces_list), "faces": faces_list, "face_hashes": face_hashes, "image": img_base64_out, "hamming_distance": hash1 - hash2})
+    return jsonify({"success": True, "reason": "OpenCV ran successfully.", "faces_detected": len(faces_list), "faces": faces_list, "image": face_img_base64_out, "hamming_distance": hash1 - hash2})
     #except Exception as e:
         #return jsonify({"success": False, "reason": str(e)})

@@ -12,10 +12,10 @@
         let photoContainer = null;
         let base64Image1 = null;
         let base64Image2 = null;
+        let base64Image3 = null;
+        let photosTaken = 0;
 
         function startWebcamCapture() {
-            canvas = document.getElementById('canvas');
-            context = canvas.getContext('2d'); // This should now work
             video = document.getElementById('video');
             photoContainer = document.getElementById('photo-container');
 
@@ -31,53 +31,73 @@
         }
 
         function capturePhoto() {
+            if(photosTaken >= 3)
+            {
+                photosTaken = 0;
+            }
+
+            canvas = document.getElementById('canvas'+(photosTaken + 1));
+            context = canvas.getContext('2d'); // This should now work
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             photoContainer.style.display = 'block'; // Show the preview section
+            photosTaken = photosTaken + 1;
         }
 
         function uploadForRecognition() {
+            if(photosTaken < 3)
+            {
+                displayFaceRecognitionMessage("Error: Three photos are required!", false);
+                return;
+            }
+
             if(base64Image1 == null)
             {
+                canvas = document.getElementById('canvas1');
                 base64Image1 = canvas.toDataURL("image/png").split(',')[1];  // Remove header
-                return
             }
 
             if(base64Image2 == null)
             {
+                canvas = document.getElementById('canvas2');
                 base64Image2 = canvas.toDataURL("image/png").split(',')[1];  // Remove header
             }
+
+            if(base64Image3 == null)
+            {
+                canvas = document.getElementById('canvas3');
+                base64Image3 = canvas.toDataURL("image/png").split(',')[1];  // Remove header
+            }
+
+            let photoArray = [base64Image1, base64Image2, base64Image3]
 
             let response = fetch("{{ url_for('login.run_face_recognition') }}", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ facePNG1: base64Image1, facePNG2: base64Image2 })
+                body: JSON.stringify({ faceArray: photoArray })
             })
             .then(response => response.json())
             .then(result => {
-                displayLoadingPrompt(result.reason, result.success)
-                if (result.image) {
-                    let img = new Image();
-
-                    img.onload = function () {
-                        // Resize canvas to match image dimensions
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-
-                        // Draw the image on the canvas
-                        context.drawImage(img, 0, 0, img.width, img.height);
-                    };
-
-                    // Set image source from Base64
-                    img.src = "data:image/png;base64," + result.image;
-                }
-
-                if(result.hamming_distance <= 5)
+                displayFaceRecognitionMessage(result.reason, result.success)
+                if(result.output)
                 {
-                    displayLoadingPrompt("Hamming Distance: " + result.hamming_distance + ". Similarity check passed!", true)
-                }
-                else
-                {
-                    displayLoadingPrompt("Hamming Distance: " + result.hamming_distance + ". Similarity check failed! Please try again.", false)
+                    console.log("Showing images...")
+                    canvas = document.getElementById('canvas1');
+                    context = canvas.getContext('2d'); // This should now work
+                    let image = new Image();
+                    image.src = "data:image/png;base64," + result.output[0].image;
+                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+                    canvas = document.getElementById('canvas2');
+                    context = canvas.getContext('2d'); // This should now work
+                    image = new Image();
+                    image.src = "data:image/png;base64," + result.output[1].image;
+                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+                    canvas = document.getElementById('canvas3');
+                    context = canvas.getContext('2d'); // This should now work
+                    image = new Image();
+                    image.src = "data:image/png;base64," + result.output[2].image;
+                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
                 }
             });
         }
@@ -85,10 +105,10 @@
         //for login & signup functionality
 
         function displayCapturePhotoOverlay() {
-            document.getElementById("loadingOverlay").style.display = "flex";
+            document.getElementById("loadingOverlay").style.display = "none";
             document.getElementById("loadingPromptOverlay").style.display = "none";
             document.getElementById("loadingGraphics").style.display = "none";
-            document.getElementById("photoUploadOverlay").style.display = "block";
+            document.getElementById("photoUploadOverlay").style.display = "flex";
             startWebcamCapture();
         }
 
@@ -113,6 +133,20 @@
             {
                 document.getElementById("loadingPromptImage").src = "{{ url_for('static', filename='error icon.png') }}";
                 document.getElementById("loadingPromptMessage").className = "login_prompt_error"
+            }
+        }
+
+        function displayFaceRecognitionMessage(message, success) {
+            document.getElementById("face_recognition_message").innerHTML = message;
+            document.getElementById("face_recognition_message").style.display = "block";
+
+            if (success)
+            {
+                document.getElementById("face_recognition_message").className = "login_prompt_success"
+            }
+            else
+            {
+                document.getElementById("face_recognition_message").className = "login_prompt_error"
             }
         }
 
@@ -267,20 +301,25 @@
                 <p id=loadingPromptMessage class="login_prompt_text"></p>
                 <button onclick="closeLoadingPrompt()">Ok</button>
             </div>
-            <div id="photoUploadOverlay" style="display: none;">
-                <h2>Capture Your Picture</h2>
-                <p>Your face is needed for multifactor authentication. Please take a picture of yourself to continue.</p>
+        </div>
+    </div>
+    <div id="photoUploadOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-box">
+            <h2>Capture Your Picture</h2>
+            <p>Your face is needed for multifactor authentication. Please take a picture of yourself to continue.</p>
+            <p id="face_recognition_message" style="display: none;"></p>
     
-                <video id="video" width="320" height="240" autoplay></video>
+            <video id="video" width="320" height="240" autoplay></video>
+            <br>
+            <button id="capture" onclick="capturePhoto()">Take Photo</button>
+            
+            <div id="photo-container">
+                <h3>Preview</h3>
+                <canvas id="canvas1" width="320" height="240"></canvas>
+                <canvas id="canvas2" width="320" height="240"></canvas>
+                <canvas id="canvas3" width="320" height="240"></canvas>
                 <br>
-                <button id="capture" onclick="capturePhoto()">Take Photo</button>
-                
-                <div id="photo-container">
-                    <h3>Preview</h3>
-                    <canvas id="canvas" width="320" height="240"></canvas>
-                    <br>
-                    <button id="upload" onclick="uploadForRecognition()">Upload Photo</button>
-                </div>
+                <button id="upload" onclick="uploadForRecognition()">Upload Photos</button>
             </div>
         </div>
     </div>

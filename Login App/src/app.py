@@ -41,7 +41,6 @@ def register():
     try:
         logger.info(f"Starting face capture for {face_name}")
 
-
         # Run face_taker.py in background (no blocking)
         result = subprocess.Popen(["python", "./src/face_taker.py", face_name], shell=False)
         result.wait()
