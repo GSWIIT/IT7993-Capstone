@@ -222,6 +222,11 @@ def run_face_recognition():
     # Return face coordinates
     faces_list = [{"x": int(x), "y": int(y), "w": int(w), "h": int(h)} for (x, y, w, h) in faces]
 
+    if len(faces_list) < 1:
+        return jsonify({"success": False, "reason": "No face detected in image!"})
+    if len(faces_list) > 1:
+        return jsonify({"success": False, "reason": "Two or more faces detected! Only one face should be uploaded."})
+    
     return jsonify({"success": True, "reason": "OpenCV ran successfully.", "faces_detected": len(faces_list), "faces": faces_list, "face_hashes": face_hashes, "image": img_base64_out, "hamming_distance": hash1 - hash2})
     #except Exception as e:
         #return jsonify({"success": False, "reason": str(e)})
