@@ -108,9 +108,7 @@ def signup():
     password = data.get("password")
 
     result = check_username_exists(username)
-
-    time.sleep(5)
-
+    time.sleep(1)
     if result == True:
         return jsonify({"success": False, "reason": "ERROR: Username already exists on the smart contract! Please create a unique username to continue."})
     
@@ -183,6 +181,61 @@ def base64_to_image(base64_string):
 
     return image
 
+def scan_image_for_face(img):
+    #img is byte64 string, represents image
+    # Decode Base64 back to an image
+    img_data = base64.b64decode(img)
+    np_arr = np.frombuffer(img_data, np.uint8)
+    img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+    # Convert to grayscale for better face detection
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # Detect faces
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+    if len(faces) < 1:
+        return {"success": False, "reason": "No face detected in image."}
+    if len(faces) > 1:
+        return {"success": False, "reason": "Too many faces detected in image."}
+
+    print(f"Detected {len(faces)} face(s).")
+
+    for (x, y, w, h) in faces:
+        preview_padding = 15  # Adjustable padding for preview image
+        face_padding = 0 #padding for cropping face in image to generate pHash
+
+        # Ensure the expanded crop does not exceed image boundaries
+        x_start_preview = max(x - preview_padding, 0)
+        y_start_preview = max(y - preview_padding, 0)
+        x_end_preview = min(x + w + preview_padding, img.shape[1])
+        y_end_preview = min(y + h + preview_padding, img.shape[0])
+
+        # Ensure the face-only crop does not exceed image boundaries
+        x_start = max(x - face_padding, 0)
+        y_start = max(y - face_padding, 0)
+        x_end = min(x + w + face_padding, img.shape[1])
+        y_end = min(y + h + face_padding, img.shape[0])
+
+        #make copy of img variable before drawing square, so the green square does not appear in the face-only crop photo
+        img_copy = img.copy()
+        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+        # Crop the face with padding, makes preview image and actual face-only image that will be used to generate pHash
+        face_crop = img[y_start_preview:y_end_preview, x_start_preview:x_end_preview]
+        face_only_crop = img_copy[y_start:y_end, x_start:x_end]
+
+        _, buffer = cv2.imencode('.png', face_crop)
+        preview_base64_img = base64.b64encode(buffer).decode('utf-8')
+
+        _, buffer = cv2.imencode('.png', face_only_crop)
+        face_base64_img = base64.b64encode(buffer).decode('utf-8')
+
+        # Generate hash for the face
+        face_hash = perceptual_hash_from_base64(face_base64_img)
+        face_hash_string = str(face_hash)
+
+        return {"success": True, "reason": "OpenCV ran successfully on provided image.", "hash": face_hash, "hash_string": face_hash_string, "image": preview_base64_img, "face_only_image": face_base64_img}
+    
 @login_bp.route('/checkface', methods=['POST'])
 def run_face_recognition():
     #try:
@@ -200,42 +253,19 @@ def run_face_recognition():
 
     #first, check the three images to make sure only one face is detected in them
     for index, img in enumerate(img_array):
-        # Decode Base64 back to an image
-        img_data = base64.b64decode(img)
-        np_arr = np.frombuffer(img_data, np.uint8)
-        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-
-        # Convert to grayscale for better face detection
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        
-        # Detect faces
-        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-        if len(faces) < 1:
-            return jsonify({"success": False, "reason": "No face detected in image " + str((index + 1)) +". Please try again."})
-        if len(faces) > 1:
-            return jsonify({"success": False, "reason": "Too many faces detected in image " + str((index + 1)) +". Please try again (only one face should be present)."})
-
-        print(f"Detected {len(faces)} face(s).")
-
-        for (x, y, w, h) in faces:
-            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-            _, buffer = cv2.imencode('.png', img)
-            face_base64_img = base64.b64encode(buffer).decode('utf-8')
-
-            # Generate hash for the face
-            face_hash = perceptual_hash_from_base64(face_base64_img)
-            face_hash_string = str(face_hash)
-
-            face_recognition_output.append({
-                "hash": face_hash, 
-                "hash_string": face_hash_string, 
-                "image": face_base64_img
-            })
-
-            face_recognition_output_images_only.append({
-                "image": face_base64_img
-            })
+        result = scan_image_for_face(img)
+        print(result)
+        if result.get("success") == False:
+            if "No face detected" in result.get("reason"):
+                return jsonify({"success": False, "reason": "No face detected in image " + str((index + 1)) +". Please try again."})
+            if "Too many faces detected" in result.get("reason"):
+                return jsonify({"success": False, "reason": "Too many faces detected in image " + str((index + 1)) +". Please try again (only one face should be present)."})
+            else:
+                return jsonify({"success": False, "reason": "Unknown error occurred."})
+        else:
+            print("Face recognition succeeded in image" + str(index + 1) + ".")
+            face_recognition_output.append(result)
+            face_recognition_output_images_only.append({"image": result.get("image")})
         
     return jsonify({"success": True, "reason": "OpenCV ran successfully and detected a face in all three photos.", "output": face_recognition_output_images_only})
 

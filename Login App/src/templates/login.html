@@ -52,23 +52,14 @@
                 return;
             }
 
-            if(base64Image1 == null)
-            {
-                canvas = document.getElementById('canvas1');
-                base64Image1 = canvas.toDataURL("image/png").split(',')[1];  // Remove header
-            }
+            canvas = document.getElementById('canvas1');
+            base64Image1 = canvas.toDataURL("image/png").split(',')[1];  // Remove header
 
-            if(base64Image2 == null)
-            {
-                canvas = document.getElementById('canvas2');
-                base64Image2 = canvas.toDataURL("image/png").split(',')[1];  // Remove header
-            }
+            canvas = document.getElementById('canvas2');
+            base64Image2 = canvas.toDataURL("image/png").split(',')[1];  // Remove header
 
-            if(base64Image3 == null)
-            {
-                canvas = document.getElementById('canvas3');
-                base64Image3 = canvas.toDataURL("image/png").split(',')[1];  // Remove header
-            }
+            canvas = document.getElementById('canvas3');
+            base64Image3 = canvas.toDataURL("image/png").split(',')[1];  // Remove header
 
             let photoArray = [base64Image1, base64Image2, base64Image3]
 
@@ -84,7 +75,8 @@
                 if(result.success)
                 {
                     confirmedPhotos = true;
-                    document.getElementById("finishSignUpButton").style.display = "block";
+                    document.getElementById("final-photo-confirmation-container").style.display = "block";
+                    document.getElementById("capture-container").style.display = "none";
                 }
                 if (result.output) {
                     console.log("Showing images...");
@@ -105,13 +97,40 @@
             });
         }
 
+        function resetSignUpPhotos() {
+            canvas = document.getElementById('canvas1');
+            let context = canvas.getContext("2d");
+            context.clearRect(0, 0, canvas.width, canvas.height); // Clear any previous drawing
+            base64Image1 = null;
+
+            canvas = document.getElementById('canvas2');
+            context = canvas.getContext("2d");
+            context.clearRect(0, 0, canvas.width, canvas.height); // Clear any previous drawing
+            base64Image2 = null;
+
+            canvas = document.getElementById('canvas3');
+            context = canvas.getContext("2d");
+            context.clearRect(0, 0, canvas.width, canvas.height); // Clear any previous drawing
+            base64Image3 = null;
+
+            photosTaken = false;
+            confirmedPhotos = false;
+
+            displayCapturePhotoOverlay()
+        }
+
         //for login & signup functionality
 
         function displayCapturePhotoOverlay() {
             document.getElementById("loadingOverlay").style.display = "none";
             document.getElementById("loadingPromptOverlay").style.display = "none";
             document.getElementById("loadingGraphics").style.display = "none";
+            document.getElementById("final-photo-confirmation-container").style.display = "none";
+            document.getElementById("face_recognition_message").style.display = "none";
+            document.getElementById("capture-container").style.display = "block";
+            document.getElementById("photo-container").style.display = "none";
             document.getElementById("photoUploadOverlay").style.display = "flex";
+
             startWebcamCapture();
         }
 
@@ -145,11 +164,11 @@
 
             if (success)
             {
-                document.getElementById("face_recognition_message").className = "login_prompt_success"
+                document.getElementById("face_recognition_message").className = "face_recognition_message_success"
             }
             else
             {
-                document.getElementById("face_recognition_message").className = "login_prompt_error"
+                document.getElementById("face_recognition_message").className = "face_recognition_message_error"
             }
         }
 
@@ -337,14 +356,18 @@
         <div class="loading-box">
             <h2>Capture Your Picture</h2>
             <p>Your face is required for multifactor authentication.</p>
-            <p>Please take three unique photos of yourself. Photos should be clear, with good lighting.</p>
-            <p id="face_recognition_message" style="display: none;"></p>
+            <p>Please take three unique photos of yourself. Photos should be clear with good lighting to improve system accuracy.</p>
+            <div class="prompt-message-overlay">
+                <p id="face_recognition_message" class="face_recognition_message_success" style="display: none;"></p>
+            </div>
     
-            <video id="video" width="320" height="240" autoplay></video>
-            <br>
-            <button id="capture" onclick="capturePhoto()">Take Photo</button>
+            <div id="capture-container">
+                <video id="video" width="320" height="240" autoplay></video>
+                <br>
+                <button id="capture" onclick="capturePhoto()">Take Photo</button>
+            </div>
             
-            <div id="photo-container">
+            <div id="photo-container" style="display: none;">
                 <h3>Preview</h3>
                 <canvas id="canvas1" width="320" height="240"></canvas>
                 <canvas id="canvas2" width="320" height="240"></canvas>
@@ -352,7 +375,13 @@
                 <br>
                 <button id="upload" onclick="uploadForRecognition()">Upload Photos</button>
             </div>
-            <button id="finishSignUpButton" style="display: none;" onclick="onSignUpClick()">Finish Sign Up</button>
+            <div id="final-photo-confirmation-container" style="display: block;">
+                <br>
+                <p>Please check and verify that your face is clear and visible in each photo.</p>
+                <br>
+                <button id="resetSignUpPhotosButton" onclick="resetSignUpPhotos()">Start Over</button>
+                <button id="finishSignUpButton" onclick="onSignUpClick()">Finish Sign Up</button>
+            </div>
         </div>
     </div>
 </body>

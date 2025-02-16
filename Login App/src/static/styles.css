@@ -213,6 +213,34 @@ a {
     text-align: center;
 }
 
+.prompt-message-overlay {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.face_recognition_message_success {
+    color: green;
+    background-color: lightgreen;
+    padding: 10px;
+    margin: 10px;
+    border: 2px solid green;
+    border-radius: 5px;
+    inline-size: 600px;
+    text-align: center;
+}
+
+.face_recognition_message_error {
+    color: red;
+    background-color: pink;
+    padding: 10px;
+    margin: 10px;
+    border: 2px solid red;
+    border-radius: 5px;
+    inline-size: 600px;
+    text-align: center;
+}
+
 /* Spinner animation */
 .spinner {
     width: 40px;
