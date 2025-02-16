@@ -80,31 +80,27 @@
             .then(response => response.json())
             .then(result => {
                 displayFaceRecognitionMessage(result.reason, result.success)
+                console.log(result.output)
                 if(result.success)
                 {
                     confirmedPhotos = true;
                     document.getElementById("finishSignUpButton").style.display = "block";
                 }
-                if(result.output)
-                {
-                    console.log("Showing images...")
-                    canvas = document.getElementById('canvas1');
-                    context = canvas.getContext('2d'); // This should now work
-                    let image = new Image();
-                    image.src = "data:image/png;base64," + result.output[0].image;
-                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                if (result.output) {
+                    console.log("Showing images...");
+                    result.output.forEach((imageObj, index) => {
+                        if (index < 3) { // Ensure we don't access an out-of-bounds index
+                            let canvas = document.getElementById(`canvas${index + 1}`);
+                            let context = canvas.getContext("2d");
 
-                    canvas = document.getElementById('canvas2');
-                    context = canvas.getContext('2d'); // This should now work
-                    image = new Image();
-                    image.src = "data:image/png;base64," + result.output[1].image;
-                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-                    canvas = document.getElementById('canvas3');
-                    context = canvas.getContext('2d'); // This should now work
-                    image = new Image();
-                    image.src = "data:image/png;base64," + result.output[2].image;
-                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                            let image = new Image();
+                            image.onload = function() { // Ensure image is loaded before drawing
+                                context.clearRect(0, 0, canvas.width, canvas.height); // Clear any previous drawing
+                                context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                            };
+                            image.src = "data:image/png;base64," + imageObj.image;
+                        }
+                    });
                 }
             });
         }
@@ -328,7 +324,7 @@
             <div id="loadingGraphics" style="display: none;">
                 <img src="{{ url_for('static', filename='ethereum.png') }}" alt="Ethereum Logo" class="loading-image">
                 <div class="spinner"></div>
-                <p>Please wait (this may take a minute)...</p>
+                <p>Communicating with BlockChain, please wait... (this may take a minute)...</p>
             </div>
             <div id="loadingPromptOverlay" style="display: none;">
                 <img id=loadingPromptImage src="{{ url_for('static', filename='error icon.png') }}" alt="Ethereum Logo" class="error-image">
@@ -340,7 +336,8 @@
     <div id="photoUploadOverlay" class="loading-overlay" style="display: none;">
         <div class="loading-box">
             <h2>Capture Your Picture</h2>
-            <p>Your face is needed for multifactor authentication. Please take a picture of yourself to continue.</p>
+            <p>Your face is required for multifactor authentication.</p>
+            <p>Please take three unique photos of yourself. Photos should be clear, with good lighting.</p>
             <p id="face_recognition_message" style="display: none;"></p>
     
             <video id="video" width="320" height="240" autoplay></video>
