@@ -14,6 +14,8 @@
         let base64Image2 = null;
         let base64Image3 = null;
         let photosTaken = 0;
+        let confirmedUniqueUsername = false;
+        let confirmedPhotos = false;
 
         function startWebcamCapture() {
             video = document.getElementById('video');
@@ -78,6 +80,11 @@
             .then(response => response.json())
             .then(result => {
                 displayFaceRecognitionMessage(result.reason, result.success)
+                if(result.success)
+                {
+                    confirmedPhotos = true;
+                    document.getElementById("finishSignUpButton").style.display = "block";
+                }
                 if(result.output)
                 {
                     console.log("Showing images...")
@@ -197,7 +204,9 @@
             document.getElementById("registration_signup_div").style.display = "block";
         }
 
-        function onSignUpClick() {
+        async function onSignUpClick() {
+            document.getElementById("signUpButton").disabled = true;
+            document.getElementById("photoUploadOverlay").style.display = "none";
             let username = document.getElementById("signup_username").value;
             let password = document.getElementById("signup_password").value;
             let password_confirm = document.getElementById("signup_password_confirm").value;
@@ -214,14 +223,39 @@
                 return
             }
 
-            displayLoadingOverlay()
-
             if(password != password_confirm)
             {
                 //display login error
                 showSignupMessage("Error: Passwords do not match.")
                 return
             }
+
+            if(confirmedUniqueUsername == false)
+            {
+                displayLoadingOverlay()
+                let usernameResponse = await fetch("{{ url_for('login.check_sent_username') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: username })
+                })
+
+                let result = await usernameResponse.json();
+
+                if(result.success == false)
+                {
+                    displayLoadingPrompt(result.reason, result.success);
+                    confirmedUniqueUsername = result.success;
+                    return
+                }
+            }
+
+            if(confirmedPhotos == false)
+            {
+                displayCapturePhotoOverlay()
+                return
+            }
+
+            displayLoadingOverlay()
 
             // Step 1: Send credentials via POST
             let response = fetch("{{ url_for('login.signup') }}", {
@@ -282,7 +316,7 @@
                         <input type="password" class="white_outline" id="signup_password_confirm" placeholder="Confirm Password" name="password_confirm">
                     </div>
                     <div class="small_padding">
-                        <button onclick="onSignUpClick()">Sign Up</button>
+                        <button id="signUpButton" onclick="onSignUpClick()">Sign Up</button>
                     </div>
                 </div>
             </div>
@@ -321,6 +355,7 @@
                 <br>
                 <button id="upload" onclick="uploadForRecognition()">Upload Photos</button>
             </div>
+            <button id="finishSignUpButton" style="display: none;" onclick="onSignUpClick()">Finish Sign Up</button>
         </div>
     </div>
 </body>

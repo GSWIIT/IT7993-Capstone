@@ -16,21 +16,6 @@ login_bp = Blueprint('login', __name__, template_folder='templates')
 # Load OpenCV's pre-trained face detection model
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 
-def hash_password(password: str) -> str:
-    """Simulates hashing of password (should match how it's stored in contract)."""
-    return hashlib.sha256(password.encode()).hexdigest()
-
-#this function checks the smart contract to see if a username already exists
-def check_username_exists(username):
-    user_obj = contract.functions.getUser(username).call()
-    print(user_obj)
-    if user_obj[0] == "":
-        print("Username does not exist in system yet.")
-        return False
-    else:
-        print("Username exists in system already!")
-        return True
-
 # Configurations
 ALCHEMY_API_URL = "https://eth-sepolia.g.alchemy.com/v2/Dv7X6LhBni2gxlcUzAPs51cKqdUHK-8Y"
 CONTRACT_ADDRESS = "0x427461725DD56ed90fB89101B2434D760D601ecb"
@@ -64,6 +49,21 @@ owner_account = w3.eth.account.from_key(PRIVATE_KEY)
 owner_address = owner_account.address
 w3.eth.default_account = owner_address
 
+def hash_password(password: str) -> str:
+    """Simulates hashing of password (should match how it's stored in contract)."""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+#this function checks the smart contract to see if a username already exists
+def check_username_exists(username):
+    user_obj = contract.functions.getUser(username).call()
+    print(user_obj)
+    if user_obj[0] == "":
+        print("Username does not exist in system yet.")
+        return False
+    else:
+        print("Username exists in system already!")
+        return True
+
 @login_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == "GET":
@@ -89,6 +89,17 @@ def login():
                 print("The password entered is incorrect.")
                 return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
 
+@login_bp.route('/usernamecheck', methods=['POST'])
+def check_sent_username():
+    data = request.get_json()
+    username = data.get("username")
+    
+    result = check_username_exists(username)
+    time.sleep(1)
+    if result == True:
+        return jsonify({"success": False, "reason": "ERROR: Username already exists on the smart contract! Please create a unique username to continue."})
+    else:
+        return jsonify({"success": True, "reason": "Username is available."})
 
 @login_bp.route('/signup', methods=['POST'])
 def signup():
@@ -172,7 +183,7 @@ def base64_to_image(base64_string):
 
     return image
 
-@login_bp.route('/face', methods=['POST'])
+@login_bp.route('/checkface', methods=['POST'])
 def run_face_recognition():
     #try:
     # Receive JSON data
@@ -228,6 +239,15 @@ def run_face_recognition():
 
             face_recognition_output.append({"hash": face_hash, "hash_string": face_hash_string, "image": face_img_base64_out})
 
+    #need to take out imagehash from array because it is not JSON serializable
+    final_face_recognition_return_array = []
+
+    for output in face_recognition_output:
+        final_face_recognition_return_array.append({"hash": output.get("hash_string"), "image": output.get("image")})
+        
+    return jsonify({"success": True, "reason": "OpenCV ran successfully and detected a face in all three photos.", "output": final_face_recognition_return_array})
+
+"""
     #finally, compare hamming distance of three detected faces for similarity comparison.
     hamming_distance_limit = 5
     hamming_distance_failed = False
@@ -308,3 +328,4 @@ def run_face_recognition():
     return jsonify({"success": True, "reason": "OpenCV ran successfully.", "faces_detected": len(faces_list), "faces": faces_list, "image": face_img_base64_out, "hamming_distance": hash1 - hash2})
     #except Exception as e:
         #return jsonify({"success": False, "reason": str(e)})
+        """
