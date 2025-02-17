@@ -6,6 +6,7 @@ import hashlib
 import time
 import cv2
 import numpy as np
+import binascii
 import base64
 from PIL import Image
 import imagehash
@@ -18,7 +19,7 @@ face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_fronta
 
 # Configurations
 ALCHEMY_API_URL = "https://eth-sepolia.g.alchemy.com/v2/Dv7X6LhBni2gxlcUzAPs51cKqdUHK-8Y"
-CONTRACT_ADDRESS = "0x427461725DD56ed90fB89101B2434D760D601ecb"
+CONTRACT_ADDRESS = "0xb3825126A86025276C3F38F3536723C15d9410C1"
 PRIVATE_KEY = "9ea2167fb16f55f70f2afca8644f9903b8f05f45c6268cf5c435b5df777c82a5"  # Owner's private key, need to delete later
 #need to set up dotenv
 #PRIVATE_KEY = os.getenv("PRIVATE_KEY")  # Owner's private key
@@ -55,9 +56,9 @@ def hash_password(password: str) -> str:
 
 #this function checks the smart contract to see if a username already exists
 def check_username_exists(username):
-    user_obj = contract.functions.getUser(username).call()
+    user_obj = contract.functions.checkIfUserExists(username).call()
     print(user_obj)
-    if user_obj[0] == "":
+    if user_obj == False:
         print("Username does not exist in system yet.")
         return False
     else:
@@ -88,6 +89,65 @@ def login():
             else:
                 print("The password entered is incorrect.")
                 return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
+            
+@login_bp.route('/login-2FA-Face', methods=['POST'])
+def check_face_for_2FA():
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+    frames = data.get("frames")
+    
+    password = hash_password(password)
+
+    user_obj = contract.functions.getUser(username).call()
+    print(user_obj)
+    if user_obj[0] == "":
+        print("The username and/or password is incorrect.")
+        return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
+    else:
+        #now we compare the password hashes to see if they match
+        if password == user_obj[1]:
+            print("Username and password match! First portion of login was successful!")
+        else:
+            print("The password entered is incorrect.")
+            return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
+    
+    #get pHashes from user object
+    reconstructed_hashes = []
+    for bytes32_hex in user_obj[2]:
+        # Ensure bytes32_value is in bytes format
+        if isinstance(bytes32_hex, str):  # If passed as a hex string
+            if bytes32_hex.startswith("0x"):
+                bytes32_hex = bytes32_hex[2:]  # Remove "0x" prefix
+            bytes32_hex = bytes.fromhex(bytes32_hex)  # Convert hex string to bytes
+
+        # Convert bytes to integer
+        hash_int = int.from_bytes(bytes32_hex, byteorder='big')
+
+        # Extract the lower 64 bits (since pHash is 64-bit)
+        hash_int = hash_int & ((1 << 64) - 1)  # Mask the first 64 bits
+
+        # Convert integer to 8x8 NumPy array
+        hash_array = np.array([(hash_int >> i) & 1 for i in range(64)], dtype=np.uint8).reshape(8, 8)
+
+        reconstructed_hashes.append(imagehash.ImageHash(hash_array))  # Convert to ImageHash
+
+    #finally, compare hamming distance of three detected faces for similarity comparison.
+    hamming_distance_limit = 5
+
+    for frameToScan in frames:
+        frameResult = scan_image_for_face(frameToScan)
+
+        if frameResult["success"]:
+            print("Comparing PHashes...")
+            for userHash in reconstructed_hashes:
+                hamming_distance = (userHash - frameToScan["hash"])
+                print("Hamming Distance: " + str(hamming_distance))
+                if hamming_distance <= hamming_distance_limit:
+                    print("Hamming distance below limit. Returning success...")
+                    return jsonify({"success": True, "reason": "Face verified successfully."})
+    
+    return jsonify({"success": False, "reason": "User's face not detected."})
 
 @login_bp.route('/usernamecheck', methods=['POST'])
 def check_sent_username():
@@ -106,20 +166,50 @@ def signup():
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
+    faceImages = data.get("faceArray")
+
+    #hash password
+    password = hash_password(password)
 
     result = check_username_exists(username)
     time.sleep(1)
     if result == True:
         return jsonify({"success": False, "reason": "ERROR: Username already exists on the smart contract! Please create a unique username to continue."})
-    
-    password = hash_password(password)
 
+    if len(faceImages) != 3:
+        return jsonify({"success": False, "reason": "ERROR: You must send three images to the server to continue."})
+    
+    #get face hash data from images
+    face_image_data = []
+    for img in faceImages:
+        result = scan_image_for_face(img)
+        if result["success"]:
+            face_image_data.append(result)
+        else:
+            return jsonify ({"success": False, "reason": result["reason"]})
+        
+    print("Face hashes obtained.")
+
+    #we have to convert the phash array to a hex string so it can be stored in solidity
+    imagehash_phash_hex_array = []
+    for result in face_image_data:
+        # Convert pHash to bytes32
+
+        # Convert 8x8 binary hash into a single 64-bit integer
+        hash_int = sum((1 << i) for i, v in enumerate(result["hash"].hash.flatten()) if v)
+        # Convert integer to 32-byte hex format for Solidity storage
+        hash_bytes32 = hash_int.to_bytes(32, byteorder='big')  # Ensure 32-byte length
+
+        hash_hex = "0x" + hash_bytes32.hex()  # Solidity-compatible hex string
+        imagehash_phash_hex_array.append(hash_hex) # Convert to hex string for Solidity
+
+    print("Estimating gas...")
     #estimate the cost of the ethereum transaction by predicting gas
-    estimated_gas = contract.functions.registerUser(username, password, "testing", "testing_GUID").estimate_gas({"from": owner_address})
+    estimated_gas = contract.functions.registerUser(username, password, imagehash_phash_hex_array, "testing_GUID").estimate_gas({"from": owner_address})
 
     #register user (use estimated gas & add an extra 50000 buffer to make sure transaction goes through)
     tx = contract.functions.registerUser(
-        username, password, "testing", "testing_GUID"
+        username, password, imagehash_phash_hex_array, "testing_GUID"
     ).build_transaction({
         "from": owner_address,
         "nonce": w3.eth.get_transaction_count(owner_address),

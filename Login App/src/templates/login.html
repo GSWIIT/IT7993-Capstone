@@ -13,6 +13,7 @@
         let base64Image1 = null;
         let base64Image2 = null;
         let base64Image3 = null;
+        let photoArray = null;
         let photosTaken = 0;
         let confirmedUniqueUsername = false;
         let confirmedPhotos = false;
@@ -61,7 +62,7 @@
             canvas = document.getElementById('canvas3');
             base64Image3 = canvas.toDataURL("image/png").split(',')[1];  // Remove header
 
-            let photoArray = [base64Image1, base64Image2, base64Image3]
+            photoArray = [base64Image1, base64Image2, base64Image3]
 
             let response = fetch("{{ url_for('login.run_face_recognition') }}", {
                 method: "POST",
@@ -214,6 +215,58 @@
             });
         }
 
+        // Capture multiple frames for face authentication
+        function captureFrames() {
+            video = document.getElementById("2FA_video");
+
+            // Access webcam
+            navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error("Error accessing webcam: ", err);
+                alert("Unable to access webcam.");
+            });
+
+            document.getElementById("loginFaceAuthOverlay").style.display = "flex";
+            let canvas = document.getElementById("2FA-capture");
+            let context = canvas.getContext("2d");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            let frameCount = 5;  // Number of frames to capture
+            let interval = 1000;  // Capture every 400ms
+            let count = 0;
+            frames = [];
+
+            let captureInterval = setInterval(() => {
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                let imageData = canvas.toDataURL("image/png");  // Convert to base64
+                frames.push(imageData);
+
+                count++;
+                if (count >= frameCount) {
+                    clearInterval(captureInterval);
+                    sendFramesToServer(frames);
+                }
+            }, interval);
+        }
+
+        // Send frames to Flask server
+        function sendFramesToServer(frames) {
+            let username = document.getElementById("login_username").value;
+            let password = document.getElementById("login_password").value;
+            fetch("/auth/login-2FA-Face", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: username, password: password, frames: frames })
+            })
+            .then(response => response.json())
+            .then(result => displayLoadingPrompt(result.reason, result.success))
+            .catch(error => console.error("Error:", error));
+        }
+
         function onPreSignUpClick() {
             document.getElementById("initial_signup_div").style.display = "none";
             document.getElementById("registration_signup_div").style.display = "block";
@@ -255,11 +308,11 @@
                 })
 
                 let result = await usernameResponse.json();
+                confirmedUniqueUsername = result.success;
 
                 if(result.success == false)
                 {
                     displayLoadingPrompt(result.reason, result.success);
-                    confirmedUniqueUsername = result.success;
                     return
                 }
             }
@@ -272,11 +325,12 @@
 
             displayLoadingOverlay()
 
+            console.log("Sending sign up request...")
             // Step 1: Send credentials via POST
             let response = fetch("{{ url_for('login.signup') }}", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username: username, password: password })
+                body: JSON.stringify({ username: username, password: password, faceArray: photoArray })
             })
             .then(response => response.json())
             .then(result => {
@@ -287,7 +341,7 @@
 </head>
 
 <body>
-    <button onclick="displayCapturePhotoOverlay()">Get Face Data</button>
+    --<button onclick="captureFrames()">Get Face Data</button>
     <div class="login_signup_container">
         <div class="login_signup_column_left">
             <div class="login_signup_center_left">
@@ -352,6 +406,17 @@
             </div>
         </div>
     </div>
+    <div id="loginFaceAuthOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-box">
+            <h2>Scan Face for Authentication</h2>
+            <br>
+            <p>Please wait while we scan your face for authentication...</p>
+            <br>
+            <video id="2FA_video" width="320" height="240" autoplay></video>
+            <br>
+            <canvas id="2FA-capture" width="320" height="240"></canvas>
+        </div>
+    </div>
     <div id="photoUploadOverlay" class="loading-overlay" style="display: none;">
         <div class="loading-box">
             <h2>Capture Your Picture</h2>
@@ -364,7 +429,7 @@
             <div id="capture-container">
                 <video id="video" width="320" height="240" autoplay></video>
                 <br>
-                <button id="capture" onclick="capturePhoto()">Take Photo</button>
+                <button id="2FA-capture" onclick="capturePhoto()">Take Photo</button>
             </div>
             
             <div id="photo-container" style="display: none;">
