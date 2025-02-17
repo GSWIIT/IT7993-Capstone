@@ -143,6 +143,7 @@
         }
 
         function displayLoadingPrompt(message, success) {
+            document.getElementById("loadingOverlay").style.display = "flex";
             document.getElementById("loadingGraphics").style.display = "none";
             document.getElementById("loadingPromptMessage").innerHTML = message;
             document.getElementById("loadingPromptOverlay").style.display = "block";
@@ -175,6 +176,10 @@
 
         function closeLoadingPrompt() {
             document.getElementById("loadingOverlay").style.display = "none";
+        }
+
+        function close2FAFaceOverlay() {
+            document.getElementById("loginFaceAuthOverlay").style.display = "none";
         }
 
         function showLoginMessage(message) {
@@ -211,18 +216,28 @@
             })
             .then(response => response.json())
             .then(result => {
-                displayLoadingPrompt(result.reason, result.success)
+                if(result.success)
+                {
+                    capture2FAFrames()
+                }
+                else
+                {
+                    displayLoadingPrompt(result.reason, result.success)
+                }
             });
         }
 
         // Capture multiple frames for face authentication
-        function captureFrames() {
-            video = document.getElementById("2FA_video");
+        function capture2FAFrames() {
+            let video_2FA = document.getElementById("2FA_video");
+            let username = document.getElementById("login_username").value;
+            let password = document.getElementById("login_password").value;
+            let errorMessage2FA = document.getElementById("2FAErrorMessage");
 
             // Access webcam
             navigator.mediaDevices.getUserMedia({ video: true })
             .then(stream => {
-                video.srcObject = stream;
+                video_2FA.srcObject = stream;
             })
             .catch(err => {
                 console.error("Error accessing webcam: ", err);
@@ -230,41 +245,48 @@
             });
 
             document.getElementById("loginFaceAuthOverlay").style.display = "flex";
-            let canvas = document.getElementById("2FA-capture");
-            let context = canvas.getContext("2d");
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
 
             let frameCount = 5;  // Number of frames to capture
-            let interval = 1000;  // Capture every 400ms
+            let interval = 400;  // Capture every 400ms
             let count = 0;
             frames = [];
 
             let captureInterval = setInterval(() => {
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                let imageData = canvas.toDataURL("image/png");  // Convert to base64
+                canvas_2FA = document.getElementById("2FA-capture");
+                context_2FA = canvas_2FA.getContext("2d");
+                //canvas_2FA.width = video_2FA.videoWidth;
+                //canvas_2FA.height = video_2FA.videoHeight;
+                context_2FA.drawImage(video_2FA, 0, 0, 320, 240);
+                let imageData = canvas_2FA.toDataURL("image/png").split(',')[1];  // Remove header
                 frames.push(imageData);
 
                 count++;
                 if (count >= frameCount) {
                     clearInterval(captureInterval);
-                    sendFramesToServer(frames);
+                    console.log(frames)
+                    fetch("/auth/login-2FA-Face", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ username: username, password: password, frames: frames })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if(result.success)
+                        {
+                            close2FAFaceOverlay()
+                            displayLoadingPrompt("Face detected! Two Factor authentication successful.", true)
+                            window.location.href = "/home";
+                        }
+                        else
+                        {
+                            errorMessage2FA.innerHTML = result.reason;
+                            errorMessage2FA.style.display = "block";
+                            setTimeout(capture2FAFrames, 50); // Wait 200ms before next session
+                        }
+                    })
+                    .catch(error => console.error("Error:", error));
                 }
             }, interval);
-        }
-
-        // Send frames to Flask server
-        function sendFramesToServer(frames) {
-            let username = document.getElementById("login_username").value;
-            let password = document.getElementById("login_password").value;
-            fetch("/auth/login-2FA-Face", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username: username, password: password, frames: frames })
-            })
-            .then(response => response.json())
-            .then(result => displayLoadingPrompt(result.reason, result.success))
-            .catch(error => console.error("Error:", error));
         }
 
         function onPreSignUpClick() {
@@ -341,7 +363,6 @@
 </head>
 
 <body>
-    --<button onclick="captureFrames()">Get Face Data</button>
     <div class="login_signup_container">
         <div class="login_signup_column_left">
             <div class="login_signup_center_left">
@@ -414,7 +435,13 @@
             <br>
             <video id="2FA_video" width="320" height="240" autoplay></video>
             <br>
-            <canvas id="2FA-capture" width="320" height="240"></canvas>
+            <div class="two_factor_capture_container">
+                <canvas id="2FA-capture" width="320" height="240"></canvas>
+            </div>
+            <br>
+            <div class="prompt-message-overlay">
+                <p id="2FAErrorMessage" class="login_prompt_error" style="display: none;"></p>
+            </div>
         </div>
     </div>
     <div id="photoUploadOverlay" class="loading-overlay" style="display: none;">

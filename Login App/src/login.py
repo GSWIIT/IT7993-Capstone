@@ -6,7 +6,6 @@ import hashlib
 import time
 import cv2
 import numpy as np
-import binascii
 import base64
 from PIL import Image
 import imagehash
@@ -19,7 +18,7 @@ face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_fronta
 
 # Configurations
 ALCHEMY_API_URL = "https://eth-sepolia.g.alchemy.com/v2/Dv7X6LhBni2gxlcUzAPs51cKqdUHK-8Y"
-CONTRACT_ADDRESS = "0xb3825126A86025276C3F38F3536723C15d9410C1"
+CONTRACT_ADDRESS = "0x3C3bdFF7bab928680869E1377a63A957938dc4ce"
 PRIVATE_KEY = "9ea2167fb16f55f70f2afca8644f9903b8f05f45c6268cf5c435b5df777c82a5"  # Owner's private key, need to delete later
 #need to set up dotenv
 #PRIVATE_KEY = os.getenv("PRIVATE_KEY")  # Owner's private key
@@ -49,6 +48,9 @@ contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
 owner_account = w3.eth.account.from_key(PRIVATE_KEY)
 owner_address = owner_account.address
 w3.eth.default_account = owner_address
+
+#a list to hold users temporarily while they are trying to 2FA, so we don't have to query the blockchain every time.
+temporary_user_storage = []
 
 def hash_password(password: str) -> str:
     """Simulates hashing of password (should match how it's stored in contract)."""
@@ -98,51 +100,61 @@ def check_face_for_2FA():
     frames = data.get("frames")
     
     password = hash_password(password)
+    user_obj = None
 
-    user_obj = contract.functions.getUser(username).call()
-    print(user_obj)
-    if user_obj[0] == "":
-        print("The username and/or password is incorrect.")
-        return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
-    else:
-        #now we compare the password hashes to see if they match
-        if password == user_obj[1]:
-            print("Username and password match! First portion of login was successful!")
-        else:
-            print("The password entered is incorrect.")
+    for tempUser in temporary_user_storage:
+        if tempUser[0] == username:
+            print(tempUser)
+            print("Pulled user from temp array.")
+            user_obj = tempUser
+            break
+
+    if user_obj is None:
+        user_obj = contract.functions.getUser(username).call()
+        print(user_obj)
+        if user_obj[0] == "":
+            print("The username and/or password is incorrect.")
             return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
+        else:
+            #now we compare the password hashes to see if they match
+            if password == user_obj[1]:
+                print("Username and password match! First portion of login was successful!")
+                temporary_user_storage.append(user_obj)
+            else:
+                print("The password entered is incorrect.")
+                return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
     
     #get pHashes from user object
     reconstructed_hashes = []
-    for bytes32_hex in user_obj[2]:
-        # Ensure bytes32_value is in bytes format
-        if isinstance(bytes32_hex, str):  # If passed as a hex string
-            if bytes32_hex.startswith("0x"):
-                bytes32_hex = bytes32_hex[2:]  # Remove "0x" prefix
-            bytes32_hex = bytes.fromhex(bytes32_hex)  # Convert hex string to bytes
+    for solidity_bytes in user_obj[2]:
+        # Convert to string from bytes, and remove the '0x' prefix if present
+        solidity_hex = solidity_bytes.hex()
 
-        # Convert bytes to integer
-        hash_int = int.from_bytes(bytes32_hex, byteorder='big')
+        # Convert hex string to an integer
+        phash_int = int(solidity_hex, 16)
 
-        # Extract the lower 64 bits (since pHash is 64-bit)
-        hash_int = hash_int & ((1 << 64) - 1)  # Mask the first 64 bits
+        # Convert integer to a 64-bit binary string
+        phash_bin = format(phash_int, '064b')  # Ensure 64 bits
 
-        # Convert integer to 8x8 NumPy array
-        hash_array = np.array([(hash_int >> i) & 1 for i in range(64)], dtype=np.uint8).reshape(8, 8)
+        # Convert binary string to a NumPy boolean array
+        phash_array = np.array([bool(int(b)) for b in phash_bin]).reshape((8, 8))  # 8x8 array
 
-        reconstructed_hashes.append(imagehash.ImageHash(hash_array))  # Convert to ImageHash
+        reconstructed_hashes.append(imagehash.ImageHash(phash_array))  # Convert to ImageHash
 
     #finally, compare hamming distance of three detected faces for similarity comparison.
     hamming_distance_limit = 5
 
-    for frameToScan in frames:
-        frameResult = scan_image_for_face(frameToScan)
+    for frameIndex, frameToScan in enumerate(frames):
+        #need to make sure frame is not empty before trying to scan it
+        if(frameToScan is None) or (frameToScan == ""):
+            continue
 
+        frameResult = scan_image_for_face(frameToScan)
         if frameResult["success"]:
-            print("Comparing PHashes...")
-            for userHash in reconstructed_hashes:
-                hamming_distance = (userHash - frameToScan["hash"])
-                print("Hamming Distance: " + str(hamming_distance))
+            print("Comparing user PHashes with frame " + str(frameIndex) + "...")
+            for hashIndex, userHash in enumerate(reconstructed_hashes):
+                hamming_distance = (userHash - frameResult["hash"])
+                print("Hamming Distance [Frame " + str(frameIndex) + " vs User PHash " + str(hashIndex) + "]: " + str(hamming_distance))
                 if hamming_distance <= hamming_distance_limit:
                     print("Hamming distance below limit. Returning success...")
                     return jsonify({"success": True, "reason": "Face verified successfully."})
@@ -193,15 +205,14 @@ def signup():
     #we have to convert the phash array to a hex string so it can be stored in solidity
     imagehash_phash_hex_array = []
     for result in face_image_data:
-        # Convert pHash to bytes32
+        # Convert pHash to bytes array
+        phash_int = int(result["hash_string"], 16)  # Convert pHash to integer from hex
+        # Convert to a compact hex string
+        phash_hex = format(phash_int, '016x')  # Ensures it's always 16 characters (64 bits)
+        phash_hex = "0x" + phash_hex  # Prefix with '0x' for Solidity compatibility
 
-        # Convert 8x8 binary hash into a single 64-bit integer
-        hash_int = sum((1 << i) for i, v in enumerate(result["hash"].hash.flatten()) if v)
-        # Convert integer to 32-byte hex format for Solidity storage
-        hash_bytes32 = hash_int.to_bytes(32, byteorder='big')  # Ensure 32-byte length
-
-        hash_hex = "0x" + hash_bytes32.hex()  # Solidity-compatible hex string
-        imagehash_phash_hex_array.append(hash_hex) # Convert to hex string for Solidity
+        print(phash_hex)  # Example Output: 0xabcdef1234567890
+        imagehash_phash_hex_array.append(phash_hex) # Convert to hex string for Solidity
 
     print("Estimating gas...")
     #estimate the cost of the ethereum transaction by predicting gas
@@ -291,8 +302,9 @@ def scan_image_for_face(img):
     print(f"Detected {len(faces)} face(s).")
 
     for (x, y, w, h) in faces:
+        """
         preview_padding = 15  # Adjustable padding for preview image
-        face_padding = 0 #padding for cropping face in image to generate pHash
+        face_padding = 5 #padding for cropping face in image to generate pHash
 
         # Ensure the expanded crop does not exceed image boundaries
         x_start_preview = max(x - preview_padding, 0)
@@ -314,17 +326,33 @@ def scan_image_for_face(img):
         face_crop = img[y_start_preview:y_end_preview, x_start_preview:x_end_preview]
         face_only_crop = img_copy[y_start:y_end, x_start:x_end]
 
-        _, buffer = cv2.imencode('.png', face_crop)
-        preview_base64_img = base64.b64encode(buffer).decode('utf-8')
-
         _, buffer = cv2.imencode('.png', face_only_crop)
         face_base64_img = base64.b64encode(buffer).decode('utf-8')
 
-        # Generate hash for the face
+        #draw green square on preview image
+        cv2.rectangle(face_crop, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+        _, buffer = cv2.imencode('.png', face_crop)
+        preview_base64_img = base64.b64encode(buffer).decode('utf-8')
+
+        """
+
+        img_copy = img.copy()
+
+        #draw rectangle on image
+        cv2.rectangle(img_copy, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+        _, buffer = cv2.imencode('.png', img)
+        face_base64_img = base64.b64encode(buffer).decode('utf-8')
+
+        _, buffer = cv2.imencode('.png', img_copy)
+        face_preview_base64_img = base64.b64encode(buffer).decode('utf-8')
+
+        # Generate hash for the face from the original image
         face_hash = perceptual_hash_from_base64(face_base64_img)
         face_hash_string = str(face_hash)
 
-        return {"success": True, "reason": "OpenCV ran successfully on provided image.", "hash": face_hash, "hash_string": face_hash_string, "image": preview_base64_img, "face_only_image": face_base64_img}
+        return {"success": True, "reason": "OpenCV ran successfully on provided image.", "hash": face_hash, "hash_string": face_hash_string, "image": face_preview_base64_img}
     
 @login_bp.route('/checkface', methods=['POST'])
 def run_face_recognition():
@@ -344,7 +372,7 @@ def run_face_recognition():
     #first, check the three images to make sure only one face is detected in them
     for index, img in enumerate(img_array):
         result = scan_image_for_face(img)
-        print(result)
+
         if result.get("success") == False:
             if "No face detected" in result.get("reason"):
                 return jsonify({"success": False, "reason": "No face detected in image " + str((index + 1)) +". Please try again."})

@@ -241,6 +241,11 @@ a {
     text-align: center;
 }
 
+.two_factor_capture_container {
+    width: 320;
+    height: 240;
+}
+
 /* Spinner animation */
 .spinner {
     width: 40px;
