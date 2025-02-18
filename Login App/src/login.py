@@ -142,7 +142,7 @@ def check_face_for_2FA():
         reconstructed_hashes.append(imagehash.ImageHash(phash_array))  # Convert to ImageHash
 
     #finally, compare hamming distance of three detected faces for similarity comparison.
-    hamming_distance_limit = 5
+    hamming_distance_limit = 12
 
     for frameIndex, frameToScan in enumerate(frames):
         #need to make sure frame is not empty before trying to scan it
