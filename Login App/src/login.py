@@ -127,7 +127,7 @@ def check_face_for_2FA():
     #get pHashes from user object
     reconstructed_hashes = []
     for solidity_bytes in user_obj[2]:
-        # Convert to string from bytes, and remove the '0x' prefix if present
+        # get hex string from bytes
         solidity_hex = solidity_bytes.hex()
 
         # Convert hex string to an integer
@@ -205,14 +205,14 @@ def signup():
     #we have to convert the phash array to a hex string so it can be stored in solidity
     imagehash_phash_hex_array = []
     for result in face_image_data:
-        # Convert pHash to bytes array
+        # Convert pHash to bytes
         phash_int = int(result["hash_string"], 16)  # Convert pHash to integer from hex
         # Convert to a compact hex string
         phash_hex = format(phash_int, '016x')  # Ensures it's always 16 characters (64 bits)
         phash_hex = "0x" + phash_hex  # Prefix with '0x' for Solidity compatibility
 
         print(phash_hex)  # Example Output: 0xabcdef1234567890
-        imagehash_phash_hex_array.append(phash_hex) # Convert to hex string for Solidity
+        imagehash_phash_hex_array.append(phash_hex)
 
     print("Estimating gas...")
     #estimate the cost of the ethereum transaction by predicting gas
