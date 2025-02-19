@@ -218,14 +218,20 @@ def signup():
     #estimate the cost of the ethereum transaction by predicting gas
     estimated_gas = contract.functions.registerUser(username, password, imagehash_phash_hex_array, "testing_GUID").estimate_gas({"from": owner_address})
 
+    # Get the suggested gas price
+    gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
+    max_priority_fee = w3.to_wei("2", "gwei")  # Priority fee (adjust based on congestion)
+    max_fee_per_gas = gas_price + max_priority_fee
+
     #register user (use estimated gas & add an extra 50000 buffer to make sure transaction goes through)
     tx = contract.functions.registerUser(
         username, password, imagehash_phash_hex_array, "testing_GUID"
     ).build_transaction({
         "from": owner_address,
         "nonce": w3.eth.get_transaction_count(owner_address),
-        "gas": estimated_gas + 50000, 
-        "gasPrice": w3.to_wei("10", "gwei")
+        "gas": estimated_gas + 200000, 
+        "maxFeePerGas": max_fee_per_gas,  # Total fee
+        "maxPriorityFeePerGas": max_priority_fee,  # Tip for miners
     })
 
     # Sign transaction with private key
