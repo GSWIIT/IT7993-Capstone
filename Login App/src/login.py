@@ -40,7 +40,7 @@ else:
     print("W3 connection failed!")
     exit
 
-#if script connected and did not exit, we should be able to load contract into variable
+#if script connected, we should be able to load contract into variable
 # Load contract
 contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
 
@@ -268,7 +268,7 @@ def generate_face_hash(face_img):
 def perceptual_hash_from_base64(base64_string):
     image = base64_to_image(base64_string)
     #image = image.convert("L")
-    return imagehash.phash(image)  # pHash is good for similarity detection
+    return imagehash.phash(image)
 
 def base64_to_image(base64_string):
     # Decode the base64 string into binary data
