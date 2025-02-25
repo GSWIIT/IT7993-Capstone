@@ -197,7 +197,7 @@ const Login: React.FC = () => {
       return;
     }
     displayLoadingOverlay();
-    const response = await fetch("{{url_for('login.login')}}", {
+    const response = await fetch("http://127.0.0.1:5000/auth/login", {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: loginUsername, password: loginPassword }),
@@ -226,7 +226,7 @@ const Login: React.FC = () => {
       return;
     }
     displayLoadingOverlay();
-    const response = await fetch('/api/signup', {
+    const response = await fetch('http://127.0.0.1:5000/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: signupUsername, password: signupPassword }),
@@ -351,8 +351,8 @@ const Login: React.FC = () => {
                 <img id="loadingPromptImage"
                   src={
                     loadingPromptSuccess
-                      ? '/static/ethereum.png'
-                      : '/static/error icon.png'
+                      ? '/src/assets/ethereum.png'
+                      : '/src/assets/error icon.png'
                   }
                   alt="Status"
                   className={

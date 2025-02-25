@@ -8,9 +8,10 @@ from settings.settings import CAMERA, FACE_DETECTION, PATHS
 from face_recognizer import initialize_camera, load_names
 from login import login_bp  # Import the blueprint from login.py
 from home import home_bp  # Import the blueprint from login.py
+from flask_cors import CORS
 
 app = Flask(__name__)
-
+CORS(app)  # Enable CORS for all routes on the app
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
