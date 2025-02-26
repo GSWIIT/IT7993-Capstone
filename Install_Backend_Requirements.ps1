@@ -4,10 +4,12 @@ $nodeJS = Get-Package | Where-Object {$_.Name -eq "Node.JS"}
 if ((Measure-Object -InputObject $nodeJS).Count -lt 1)
 {
     #install MSI
-    & "$($PSScriptRoot)\Backend\Requirements\node-v22.14.0-x64.msi"
+    Start-Process -FilePath "$($PSScriptRoot)\Backend\Requirements\node-v22.14.0-x64.msi" -Wait
 }
 
 Start-Sleep -Seconds 3
+
+Start-Process -FilePath "$($PSScriptRoot)\Backend\Requirements\vs_BuildTools.exe" -Wait
 
 #install required Node JS packages
 npm install --save-dev hardhat
