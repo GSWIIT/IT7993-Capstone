@@ -9,7 +9,7 @@ if ((Measure-Object -InputObject $nodeJS).Count -lt 1)
 
 Start-Sleep -Seconds 3
 
-Start-Process -FilePath "$($PSScriptRoot)\Backend\Requirements\vs_BuildTools.exe" -Wait
+#Start-Process -FilePath "$($PSScriptRoot)\Backend\Requirements\vs_BuildTools.exe" -Wait
 
 #install required Node JS packages
 npm install --save-dev hardhat
@@ -18,3 +18,5 @@ npm install --save-dev @nomiclabs/hardhat-ethers "ethers@^5.0.0"
 
 #install required Python packages
 pip install -r "$($PSScriptRoot)\Backend\Requirements\requirements.txt"
+
+pip install "$($PSScriptRoot)\Backend\Requirements\dlib-19.24.1-cp311-cp311-win_amd64.whl"
