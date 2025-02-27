@@ -1,45 +1,56 @@
-// Login.tsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import './login.css';
+const LoginPage: React.FC = () => {
+  // Refs for webcam and canvas elements
+  const videoRef = useRef<HTMLVideoElement>(null!);
+  const canvas1Ref = useRef<HTMLCanvasElement>(null!);
+  const canvas2Ref = useRef<HTMLCanvasElement>(null!);
+  const canvas3Ref = useRef<HTMLCanvasElement>(null!);
+  const video2FARef = useRef<HTMLVideoElement>(null!);
+  const canvas2FARef = useRef<HTMLCanvasElement>(null!);
 
-const Login: React.FC = () => {
-  // Login/Signup form state
+  // State for overlays and messages
+  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
+  const [showLoadingGraphics, setShowLoadingGraphics] = useState(false);
+  const [showLoadingPromptOverlay, setShowLoadingPromptOverlay] = useState(false);
+  const [loadingPromptMessage, setLoadingPromptMessage] = useState('');
+  const [loadingPromptSuccess, setLoadingPromptSuccess] = useState(false);
+  const [loginMessage, setLoginMessage] = useState('');
+  const [showLoginMessage, setShowLoginMessage] = useState(false);
+  const [signupMessage, setSignupMessage] = useState('');
+  const [showSignupMessage, setShowSignupMessage] = useState(false);
+  const [twoFAErrorMessage, setTwoFAErrorMessage] = useState('');
+  const [faceRecognitionMessage, setFaceRecognitionMessage] = useState('');
+  const [faceRecognitionSuccess, setFaceRecognitionSuccess] = useState(false);
+  const [showFaceRecognitionMessage, setShowFaceRecognitionMessage] = useState(false);
+
+  // State for login/signup and webcam/photo capture
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [signupUsername, setSignupUsername] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupPasswordConfirm, setSignupPasswordConfirm] = useState('');
-  const [loginMessage, setLoginMessage] = useState('');
-  const [showLoginMessage, setShowLoginMessage] = useState(false);
-  const [signupMessage, setSignupMessage] = useState('');
-  const [showSignupMessage, setShowSignupMessage] = useState(false);
-  const [isSignUpMode, setIsSignUpMode] = useState(false);
+  const [isInitialSignup, setIsInitialSignup] = useState(true);
+  const [signUpButtonDisabled, setSignUpButtonDisabled] = useState(false);
+  const [photosTaken, setPhotosTaken] = useState(0);
+  const [photoArray, setPhotoArray] = useState<string[]>([]);
+  const [confirmedUniqueUsername, setConfirmedUniqueUsername] = useState(false);
+  const [confirmedPhotos, setConfirmedPhotos] = useState(false);
 
-  // Overlays and prompts
-  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
-  const [showLoadingPromptOverlay, setShowLoadingPromptOverlay] = useState(false);
-  const [showLoadingGraphics, setShowLoadingGraphics] = useState(false);
+  // State to control overlay display sections
+  const [showCaptureContainer, setShowCaptureContainer] = useState(true);
+  const [showPhotoContainer, setShowPhotoContainer] = useState(false);
+  const [showFinalPhotoConfirmation, setShowFinalPhotoConfirmation] = useState(false);
   const [showPhotoUploadOverlay, setShowPhotoUploadOverlay] = useState(false);
-  const [loadingPromptMessage, setLoadingPromptMessage] = useState('');
-  const [loadingPromptSuccess, setLoadingPromptSuccess] = useState<boolean | null>(null);
+  const [showLoginFaceAuthOverlay, setShowLoginFaceAuthOverlay] = useState(false);
 
-  // Refs for webcam and canvas
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  
-  // Using refs for the captured images (won't cause re-renders)
-  const base64Image1Ref = useRef<string | null>(null);
-  const base64Image2Ref = useRef<string | null>(null);
-
-  //Start webcam capture
+  // ----- Helper functions -----
   const startWebcamCapture = () => {
     if (videoRef.current) {
-      navigator.mediaDevices.getUserMedia({ video: true })
+      navigator.mediaDevices
+        .getUserMedia({ video: true })
         .then((stream) => {
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            videoRef.current.play();
-          }
+          videoRef.current!.srcObject = stream;
         })
         .catch((err) => {
           console.error('Error accessing webcam: ', err);
@@ -48,112 +59,109 @@ const Login: React.FC = () => {
     }
   };
 
-  // Ensure the webcam starts when the component mounts
-  useEffect(() => {
-    startWebcamCapture();
-  }, []);
-
-// useEffect(() => {
-//     // Request camera access when the component mounts
-//     const startWebcamCapture = async () => {
-//       try {
-//         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-//         if (videoRef.current) {
-//           videoRef.current.srcObject = stream;
-//           videoRef.current.play();
-//         }
-//       } catch (error) {
-//         console.error('Error accessing the camera', error);
-//       }
-//     };
-
-//     startWebcamCapture();
-
-//     // Cleanup: stop all video tracks when the component unmounts
-//     return () => {
-//       if (videoRef.current?.srcObject) {
-//         const stream = videoRef.current.srcObject as MediaStream;
-//         stream.getTracks().forEach(track => track.stop());
-//       }
-//     };
-//   }, []);
-
-  // Capture a photo from the video stream
   const capturePhoto = () => {
-    if (canvasRef.current && videoRef.current) {
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
+    // Reset if already taken three photos
+    if (photosTaken >= 3) {
+      setPhotosTaken(0);
+    }
+    let canvasRefToUse: React.RefObject<HTMLCanvasElement> | null = null;
+    if (photosTaken === 0) canvasRefToUse = canvas1Ref;
+    else if (photosTaken === 1) canvasRefToUse = canvas2Ref;
+    else if (photosTaken === 2) canvasRefToUse = canvas3Ref;
+
+    if (canvasRefToUse?.current && videoRef.current) {
+      const context = canvasRefToUse.current.getContext('2d');
       if (context) {
-        context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        context.drawImage(
+          videoRef.current,
+          0,
+          0,
+          canvasRefToUse.current.width,
+          canvasRefToUse.current.height
+        );
       }
     }
+    setShowPhotoContainer(true);
+    setPhotosTaken(photosTaken + 1);
   };
 
-  // Upload captured photo(s) for face recognition
+  const displayFaceRecognitionMessage = (message: string, success: boolean) => {
+    setFaceRecognitionMessage(message);
+    setFaceRecognitionSuccess(success);
+    setShowFaceRecognitionMessage(true);
+  };
+
   const uploadForRecognition = () => {
-    if (canvasRef.current) {
-      if (base64Image1Ref.current === null) {
-        base64Image1Ref.current = canvasRef.current
-          .toDataURL('image/png')
-          .split(',')[1];
-        return;
-      }
-      if (base64Image2Ref.current === null) {
-        base64Image2Ref.current = canvasRef.current
-          .toDataURL('image/png')
-          .split(',')[1];
-      }
-
-      fetch('/api/run_face_recognition', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          facePNG1: base64Image1Ref.current,
-          facePNG2: base64Image2Ref.current,
-        }),
-      })
-        .then((response) => response.json())
-        .then((result) => {
-          displayLoadingPrompt(result.reason, result.success);
-          if (result.image) {
-            const img = new Image();
-            img.onload = () => {
-              if (canvasRef.current) {
-                canvasRef.current.width = img.width;
-                canvasRef.current.height = img.height;
-                const context = canvasRef.current.getContext('2d');
-                if (context) {
-                  context.drawImage(img, 0, 0, img.width, img.height);
-                }
-              }
-            };
-            img.src = 'data:image/png;base64,' + result.image;
-          }
-
-          if (result.hamming_distance <= 5) {
-            displayLoadingPrompt(
-              'Hamming Distance: ' +
-                result.hamming_distance +
-                '. Similarity check passed!',
-              true
-            );
-          } else {
-            displayLoadingPrompt(
-              'Hamming Distance: ' +
-                result.hamming_distance +
-                '. Similarity check failed! Please try again.',
-              false
-            );
-          }
-        });
+    if (photosTaken < 3) {
+      displayFaceRecognitionMessage('Error: Three photos are required!', false);
+      return;
     }
+    const base64Image1 =
+      canvas1Ref.current?.toDataURL('image/png').split(',')[1] || '';
+    const base64Image2 =
+      canvas2Ref.current?.toDataURL('image/png').split(',')[1] || '';
+    const base64Image3 =
+      canvas3Ref.current?.toDataURL('image/png').split(',')[1] || '';
+    const photos = [base64Image1, base64Image2, base64Image3];
+    setPhotoArray(photos);
+
+    fetch('http://127.0.0.1:5000/auth/run_face_recognition', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ faceArray: photos }),
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        displayFaceRecognitionMessage(result.reason, result.success);
+        console.log(result.output);
+        if (result.success) {
+          setConfirmedPhotos(true);
+          setShowFinalPhotoConfirmation(true);
+          setShowCaptureContainer(false);
+        }
+        if (result.output) {
+          result.output.forEach((imageObj: any, index: number) => {
+            if (index < 3) {
+              let canvas: HTMLCanvasElement | null = null;
+              if (index === 0) canvas = canvas1Ref.current;
+              if (index === 1) canvas = canvas2Ref.current;
+              if (index === 2) canvas = canvas3Ref.current;
+              if (canvas) {
+                const context = canvas.getContext('2d');
+                const image = new Image();
+                image.onload = function () {
+                  context?.clearRect(0, 0, canvas!.width, canvas!.height);
+                  context?.drawImage(image, 0, 0, canvas!.width, canvas!.height);
+                };
+                image.src = 'data:image/png;base64,' + imageObj.image;
+              }
+            }
+          });
+        }
+      });
   };
 
-  // Overlay display functions
+  const resetSignUpPhotos = () => {
+    [canvas1Ref, canvas2Ref, canvas3Ref].forEach((ref) => {
+      if (ref.current) {
+        const ctx = ref.current.getContext('2d');
+        ctx?.clearRect(0, 0, ref.current.width, ref.current.height);
+      }
+    });
+    setPhotoArray([]);
+    setPhotosTaken(0);
+    setConfirmedPhotos(false);
+    displayCapturePhotoOverlay();
+  };
+
   const displayCapturePhotoOverlay = () => {
-    setShowLoadingOverlay(true);
+    setShowLoadingOverlay(false);
     setShowLoadingPromptOverlay(false);
     setShowLoadingGraphics(false);
+    setShowFinalPhotoConfirmation(false);
+    setShowFaceRecognitionMessage(false);
+    setShowCaptureContainer(true);
+    setShowPhotoContainer(false);
     setShowPhotoUploadOverlay(true);
     startWebcamCapture();
   };
@@ -165,6 +173,7 @@ const Login: React.FC = () => {
   };
 
   const displayLoadingPrompt = (message: string, success: boolean) => {
+    setShowLoadingOverlay(true);
     setShowLoadingGraphics(false);
     setLoadingPromptMessage(message);
     setLoadingPromptSuccess(success);
@@ -173,72 +182,162 @@ const Login: React.FC = () => {
 
   const closeLoadingPrompt = () => {
     setShowLoadingOverlay(false);
+    setShowLoadingPromptOverlay(false);
   };
 
-  // Message display functions for login/signup
-  const showLoginMsg = (message: string) => {
+  const close2FAFaceOverlay = () => {
+    setShowLoginFaceAuthOverlay(false);
+  };
+
+  const showLoginMessageFunc = (message: string) => {
     setLoginMessage(message);
     setShowLoginMessage(true);
   };
 
-  const showSignupMsg = (message: string) => {
+  const showSignupMessageFunc = (message: string) => {
     setSignupMessage(message);
     setShowSignupMessage(true);
   };
 
-  // Login button click handler
-  const onSignInClick = async () => {
+  const onSignInClick = () => {
     if (loginUsername.trim() === '') {
-      showLoginMsg('Error: Username cannot be blank.');
+      showLoginMessageFunc('Error: Username cannot be blank.');
       return;
     }
     if (loginPassword.trim() === '') {
-      showLoginMsg('Error: Password cannot be blank.');
+      showLoginMessageFunc('Error: Password cannot be blank.');
       return;
     }
     displayLoadingOverlay();
-    const response = await fetch("http://127.0.0.1:5000/auth/login", {
+    fetch('http://127.0.0.1:5000/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: loginUsername, password: loginPassword }),
-    });
-    const result = await response.json();
-    displayLoadingPrompt(result.reason, result.success);
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.success) {
+          capture2FAFrames();
+        } else {
+          displayLoadingPrompt(result.reason, result.success);
+        }
+      });
   };
 
-  // Switch to sign-up form
+  const capture2FAFrames = () => {
+    if (video2FARef.current) {
+      navigator.mediaDevices
+        .getUserMedia({ video: true })
+        .then((stream) => {
+          video2FARef.current!.srcObject = stream;
+        })
+        .catch((err) => {
+          console.error('Error accessing webcam: ', err);
+          alert('Unable to access webcam.');
+        });
+    }
+    setShowLoginFaceAuthOverlay(true);
+    const frameCount = 5;
+    const interval = 400;
+    let count = 0;
+    const frames: string[] = [];
+    const captureInterval = setInterval(() => {
+      if (canvas2FARef.current && video2FARef.current) {
+        const context = canvas2FARef.current.getContext('2d');
+        context?.drawImage(video2FARef.current, 0, 0, 320, 240);
+        const imageData = canvas2FARef.current
+          .toDataURL('image/png')
+          .split(',')[1];
+        frames.push(imageData);
+      }
+      count++;
+      if (count >= frameCount) {
+        clearInterval(captureInterval);
+        fetch('http://127.0.0.1:5000/auth/login-2FA-Face', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: loginUsername,
+            password: loginPassword,
+            frames: frames,
+          }),
+        })
+          .then((response) => response.json())
+          .then((result) => {
+            if (result.success) {
+              close2FAFaceOverlay();
+              displayLoadingPrompt(
+                'Face detected! Two Factor authentication successful.',
+                true
+              );
+              window.location.href = '/home';
+            } else {
+              setTwoFAErrorMessage(result.reason);
+              setTimeout(capture2FAFrames, 50);
+            }
+          })
+          .catch((error) => console.error('Error:', error));
+      }
+    }, interval);
+  };
+
   const onPreSignUpClick = () => {
-    setIsSignUpMode(true);
+    setIsInitialSignup(false);
   };
 
-  // Sign-up button click handler
   const onSignUpClick = async () => {
+    setSignUpButtonDisabled(true);
+    setShowPhotoUploadOverlay(false);
     if (signupUsername.trim() === '') {
-      showSignupMsg('Error: Username cannot be blank.');
+      showSignupMessageFunc('Error: Username cannot be blank.');
       return;
     }
     if (signupPassword.trim() === '') {
-      showSignupMsg('Error: Password cannot be blank.');
+      showSignupMessageFunc('Error: Password cannot be blank.');
       return;
     }
     if (signupPassword !== signupPasswordConfirm) {
-      showSignupMsg('Error: Passwords do not match.');
+      showSignupMessageFunc('Error: Passwords do not match.');
+      return;
+    }
+    if (!confirmedUniqueUsername) {
+      displayLoadingOverlay();
+      const usernameResponse = await fetch('http://127.0.0.1:5000/auth/usernamecheck', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: signupUsername }),
+      });
+      const result = await usernameResponse.json();
+      setConfirmedUniqueUsername(result.success);
+      if (!result.success) {
+        displayLoadingPrompt(result.reason, result.success);
+        return;
+      }
+    }
+    if (!confirmedPhotos) {
+      displayCapturePhotoOverlay();
       return;
     }
     displayLoadingOverlay();
-    const response = await fetch('/api/signup', {
+    fetch('http://127.0.0.1:5000/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: signupUsername, password: signupPassword }),
-    });
-    const result = await response.json();
-    displayLoadingPrompt(result.reason, result.success);
+      body: JSON.stringify({
+        username: signupUsername,
+        password: signupPassword,
+        faceArray: photoArray,
+      }),
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        displayLoadingPrompt(result.reason, result.success);
+      });
   };
 
+  // ----------------- JSX -----------------
   return (
-    <div>
-      <button onClick={displayCapturePhotoOverlay}>Get Face Data</button>
-
+    <>
+      {/* Link to external stylesheet */}
       <div className="login_signup_container">
         <div className="login_signup_column_left">
           <div className="login_signup_center_left">
@@ -278,12 +377,12 @@ const Login: React.FC = () => {
         </div>
         <div className="login_signup_column_right">
           <div className="login_signup_center_right">
-            {!isSignUpMode ? (
+            {isInitialSignup ? (
               <div id="initial_signup_div" style={{ display: 'block' }}>
                 <h2 className="white_text">New User?</h2>
                 <p className="medium_padding white_text">
-                  No worries! Click the button below to create a free account with
-                  us.
+                  No worries! Click the button below to create a free account
+                  with us.
                 </p>
                 <button onClick={onPreSignUpClick}>Sign Up</button>
               </div>
@@ -298,14 +397,25 @@ const Login: React.FC = () => {
                   </div>
                 )}
                 <div className="small_padding">
-                  <input type="text" className="white_outline" id="signup_username"
-                    placeholder="Your New Username" name="username" value={signupUsername}
+                  <input
+                    type="text"
+                    className="white_outline"
+                    id="signup_username"
+                    placeholder="Your New Username"
+                    name="username"
+                    value={signupUsername}
                     onChange={(e) => setSignupUsername(e.target.value)}
                   />
                 </div>
                 <div className="small_padding">
-                  <input  type="password" className="white_outline" id="signup_password" placeholder="Your Password"
-                    name="password" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)}
+                  <input
+                    type="password"
+                    className="white_outline"
+                    id="signup_password"
+                    placeholder="Your Password"
+                    name="password"
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
                   />
                 </div>
                 <div className="small_padding">
@@ -316,11 +426,19 @@ const Login: React.FC = () => {
                     placeholder="Confirm Password"
                     name="password_confirm"
                     value={signupPasswordConfirm}
-                    onChange={(e) => setSignupPasswordConfirm(e.target.value)}
+                    onChange={(e) =>
+                      setSignupPasswordConfirm(e.target.value)
+                    }
                   />
                 </div>
                 <div className="small_padding">
-                  <button onClick={onSignUpClick}>Sign Up</button>
+                  <button
+                    id="signUpButton"
+                    onClick={onSignUpClick}
+                    disabled={signUpButtonDisabled}
+                  >
+                    Sign Up
+                  </button>
                 </div>
               </div>
             )}
@@ -336,62 +454,174 @@ const Login: React.FC = () => {
         >
           <div className="loading-box">
             {showLoadingGraphics && (
-              <div id="loadingGraphics">
+              <div id="loadingGraphics" style={{ display: 'block' }}>
                 <img
                   src="/src/assets/ethereum.png"
                   alt="Ethereum Logo"
                   className="loading-image"
                 />
                 <div className="spinner"></div>
-                <p>Please wait (this may take a minute)...</p>
+                <p>
+                  Communicating with BlockChain, please wait... (this may take a
+                  minute)...
+                </p>
               </div>
             )}
             {showLoadingPromptOverlay && (
-              <div id="loadingPromptOverlay">
-                <img id="loadingPromptImage"
+              <div id="loadingPromptOverlay" style={{ display: 'block' }}>
+                <img
+                  id="loadingPromptImage"
                   src={
                     loadingPromptSuccess
-                      ? '/static/ethereum.png'
-                      : '/static/error icon.png'
+                      ? '/src/assets/ethereum.png'
+                      : '/src/assets/error icon.png'
                   }
-                  alt="Status"
+                  alt="Prompt"
+                  className="error-image"
+                />
+                <p
+                  id="loadingPromptMessage"
                   className={
                     loadingPromptSuccess
                       ? 'login_prompt_success'
                       : 'login_prompt_error'
                   }
-                />
-                <p id="loadingPromptMessage" className="login_prompt_text">
+                >
                   {loadingPromptMessage}
                 </p>
                 <button onClick={closeLoadingPrompt}>Ok</button>
               </div>
             )}
-            {showPhotoUploadOverlay && (
-              <div id="photoUploadOverlay">
-                <h2>Capture Your Picture</h2>
-                <p>
-                  Your face is needed for multifactor authentication. Please take a
-                  picture of yourself to continue.
-                </p>
-
-                <video id="video" width="320" height="240" autoPlay ref={videoRef} />
-                <br />
-                <button id="capture" onClick={capturePhoto}>Take Photo</button>
-
-                <div id="photo-container">
-                  <h3>Preview</h3>
-                  <canvas id="canvas" width="320" height="240" ref={canvasRef} />
-                  <br />
-                  <button id="upload" onClick={uploadForRecognition}>Upload Photo</button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
-    </div>
+
+      {showLoginFaceAuthOverlay && (
+        <div
+          id="loginFaceAuthOverlay"
+          className="loading-overlay"
+          style={{ display: 'flex' }}
+        >
+          <div className="loading-box">
+            <h2>Scan Face for Authentication</h2>
+            <br />
+            <p>Please wait while we scan your face for authentication...</p>
+            <br />
+            <video
+              id="2FA_video"
+              width="320"
+              height="240"
+              autoPlay
+              ref={video2FARef}
+            ></video>
+            <br />
+            <div className="two_factor_capture_container">
+              <canvas
+                id="2FA-capture"
+                width="320"
+                height="240"
+                ref={canvas2FARef}
+              ></canvas>
+            </div>
+            <br />
+            <div className="prompt-message-overlay">
+              {twoFAErrorMessage && (
+                <p id="2FAErrorMessage" className="login_prompt_error">
+                  {twoFAErrorMessage}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPhotoUploadOverlay && (
+        <div
+          id="photoUploadOverlay"
+          className="loading-overlay"
+          style={{ display: 'flex' }}
+        >
+          <div className="loading-box">
+            <h2>Capture Your Picture</h2>
+            <p>
+              Your face is required for multifactor authentication.
+            </p>
+            <p>
+              Please take three unique photos of yourself. Photos should be
+              clear with good lighting to improve system accuracy.
+            </p>
+            <div className="prompt-message-overlay">
+              {showFaceRecognitionMessage && (
+                <p
+                  id="face_recognition_message"
+                  className={
+                    faceRecognitionSuccess
+                      ? 'face_recognition_message_success'
+                      : 'face_recognition_message_error'
+                  }
+                >
+                  {faceRecognitionMessage}
+                </p>
+              )}
+            </div>
+            {showCaptureContainer && (
+              <div id="capture-container">
+                <video
+                  id="video"
+                  width="320"
+                  height="240"
+                  autoPlay
+                  ref={videoRef}
+                ></video>
+                <br />
+                <button onClick={capturePhoto}>Take Photo</button>
+              </div>
+            )}
+            {showPhotoContainer && (
+              <div id="photo-container" style={{ display: 'block' }}>
+                <h3>Preview</h3>
+                <canvas
+                  id="canvas1"
+                  width="320"
+                  height="240"
+                  ref={canvas1Ref}
+                ></canvas>
+                <canvas
+                  id="canvas2"
+                  width="320"
+                  height="240"
+                  ref={canvas2Ref}
+                ></canvas>
+                <canvas
+                  id="canvas3"
+                  width="320"
+                  height="240"
+                  ref={canvas3Ref}
+                ></canvas>
+                <br />
+                <button onClick={uploadForRecognition}>Upload Photos</button>
+              </div>
+            )}
+            <div
+              id="final-photo-confirmation-container"
+              style={{
+                display: showFinalPhotoConfirmation ? 'block' : 'none',
+              }}
+            >
+              <br />
+              <p>
+                Please check and verify that your face is clear and visible in
+                each photo.
+              </p>
+              <br />
+              <button onClick={resetSignUpPhotos}>Start Over</button>
+              <button onClick={onSignUpClick}>Finish Sign Up</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
-export default Login;
+export default LoginPage;
