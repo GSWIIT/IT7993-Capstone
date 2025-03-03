@@ -11,17 +11,18 @@ from PIL import Image
 import imagehash
 import io
 import face_recognition
-import cmake
-import dlib
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
 
 login_bp = Blueprint('login', __name__, template_folder='templates')
 
 # Load OpenCV's pre-trained face detection model
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+face_hash_secret_key = "Anthony123!!!!!!".encode() #for testing only
 
 # Configurations
 ALCHEMY_API_URL = "https://eth-sepolia.g.alchemy.com/v2/Dv7X6LhBni2gxlcUzAPs51cKqdUHK-8Y"
-CONTRACT_ADDRESS = "0x3C3bdFF7bab928680869E1377a63A957938dc4ce"
+CONTRACT_ADDRESS = "0x07541b4880862f6EEf1FAf76Cae858789060F723"
 PRIVATE_KEY = "9ea2167fb16f55f70f2afca8644f9903b8f05f45c6268cf5c435b5df777c82a5"  # Owner's private key, need to delete later
 #need to set up dotenv
 #PRIVATE_KEY = os.getenv("PRIVATE_KEY")  # Owner's private key
@@ -69,6 +70,37 @@ def check_username_exists(username):
     else:
         print("Username exists in system already!")
         return True
+    
+#for generating Locality-Sensitive Hashing (LSH) values for face embeddings
+def generate_random_hyperplanes(num_planes, dimension):
+    # Generates random hyperplanes for the LSH transformation
+    return np.random.randn(num_planes, dimension)
+
+def lsh_embedding(embedding, hyperplanes):
+    # Projects the embedding onto each hyperplane and thresholds to generate a binary vector
+    projection = np.dot(hyperplanes, embedding)
+    binary_hash = projection > 0  # Boolean array: True if positive, False otherwise
+    return binary_hash.astype(int)
+
+def binary_string_to_int_array(binary_str):
+    return np.array(list(binary_str), dtype=int)
+
+def hamming_distance(str1, str2):
+    return sum(b1 != b2 for b1, b2 in zip(str1, str2))
+
+def encrypt_encoding(encoding_str, key):
+    cipher = AES.new(key, AES.MODE_CBC)  # AES cipher in CBC mode
+    iv = cipher.iv  # Initialization vector
+    encrypted_bytes = cipher.encrypt(pad(encoding_str.encode(), AES.block_size))
+    return base64.b64encode(iv + encrypted_bytes).decode()  # Store as base64 string
+
+def decrypt_encoding(encrypted_str, key):
+    encrypted_data = base64.b64decode(encrypted_str)
+    iv = encrypted_data[:16]  # Extract IV
+    encrypted_bytes = encrypted_data[16:]  # Extract ciphertext
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    decrypted_str = unpad(cipher.decrypt(encrypted_bytes), AES.block_size).decode()
+    return decrypted_str
 
 @login_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -126,39 +158,28 @@ def check_face_for_2FA():
             else:
                 print("The password entered is incorrect.")
                 return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
-    
-    #get pHashes from user object
-    reconstructed_hashes = []
-    for solidity_bytes in user_obj[2]:
-        # get hex string from bytes
-        solidity_hex = solidity_bytes.hex()
 
-        # Convert hex string to an integer
-        phash_int = int(solidity_hex, 16)
-
-        # Convert integer to a 64-bit binary string
-        phash_bin = format(phash_int, '064b')  # Ensure 64 bits
-
-        # Convert binary string to a NumPy boolean array
-        phash_array = np.array([bool(int(b)) for b in phash_bin]).reshape((8, 8))  # 8x8 array
-
-        reconstructed_hashes.append(imagehash.ImageHash(phash_array))  # Convert to ImageHash
-
-    #finally, compare hamming distance of three detected faces for similarity comparison.
-    hamming_distance_limit = 12
+    #finally, compare euclidean distance of three detected faces for similarity comparison.
+    euclidean_distance_limit = 10
 
     for frameIndex, frameToScan in enumerate(frames):
         #need to make sure frame is not empty before trying to scan it
         if(frameToScan is None) or (frameToScan == ""):
             continue
 
-        frameResult = scan_image_for_face(frameToScan)
+        frameResult = create_lsh_from_image(frameToScan, False)
         if frameResult["success"]:
-            print("Comparing user PHashes with frame " + str(frameIndex) + "...")
-            for hashIndex, userHash in enumerate(reconstructed_hashes):
-                hamming_distance = (userHash - frameResult["hash"])
-                print("Hamming Distance [Frame " + str(frameIndex) + " vs User PHash " + str(hashIndex) + "]: " + str(hamming_distance))
-                if hamming_distance <= hamming_distance_limit:
+            print("Comparing face embeddings with frame " + str(frameIndex) + "...")
+            for hashIndex, userHash in enumerate(user_obj[2]):
+                # Compute Euclidean distance
+                userHash_string = decrypt_encoding(userHash, face_hash_secret_key)
+                print("decrypted")
+                userHash = np.array(json.loads(userHash_string))
+                print(frameResult["encoding"], userHash)
+                results = face_recognition.compare_faces([userHash], frameResult["encoding"])
+                print("Hamming distance [Frame " + str(frameIndex) + " vs User LSH " + str(hashIndex) + "]: " + str(results))
+                print(results[0])
+                if results[0] == True:
                     print("Hamming distance below limit. Returning success...")
                     return jsonify({"success": True, "reason": "Face verified successfully."})
     
@@ -197,7 +218,8 @@ def signup():
     #get face hash data from images
     face_image_data = []
     for img in faceImages:
-        result = scan_image_for_face(img)
+        #result = scan_image_for_face(img)
+        result = create_lsh_from_image(img, True)
         if result["success"]:
             face_image_data.append(result)
         else:
@@ -205,6 +227,11 @@ def signup():
         
     print("Face hashes obtained.")
 
+    face_hash_array = []
+    for face in face_image_data:
+        face_hash_array.append(face["hash"])
+
+    """
     #we have to convert the phash array to a hex string so it can be stored in solidity
     imagehash_phash_hex_array = []
     for result in face_image_data:
@@ -216,10 +243,11 @@ def signup():
 
         print(phash_hex)  # Example Output: 0xabcdef1234567890
         imagehash_phash_hex_array.append(phash_hex)
+    """
 
     print("Estimating gas...")
     #estimate the cost of the ethereum transaction by predicting gas
-    estimated_gas = contract.functions.registerUser(username, password, imagehash_phash_hex_array, "testing_GUID").estimate_gas({"from": owner_address})
+    estimated_gas = contract.functions.registerUser(username, password, face_hash_array, "testing_GUID").estimate_gas({"from": owner_address})
 
     # Get the suggested gas price
     gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
@@ -228,7 +256,7 @@ def signup():
 
     #register user (use estimated gas & add an extra 50000 buffer to make sure transaction goes through)
     tx = contract.functions.registerUser(
-        username, password, imagehash_phash_hex_array, "testing_GUID"
+        username, password, face_hash_array, "testing_GUID"
     ).build_transaction({
         "from": owner_address,
         "nonce": w3.eth.get_transaction_count(owner_address),
@@ -311,41 +339,6 @@ def scan_image_for_face(img):
     print(f"Detected {len(faces)} face(s).")
 
     for (x, y, w, h) in faces:
-        """
-        preview_padding = 15  # Adjustable padding for preview image
-        face_padding = 5 #padding for cropping face in image to generate pHash
-
-        # Ensure the expanded crop does not exceed image boundaries
-        x_start_preview = max(x - preview_padding, 0)
-        y_start_preview = max(y - preview_padding, 0)
-        x_end_preview = min(x + w + preview_padding, img.shape[1])
-        y_end_preview = min(y + h + preview_padding, img.shape[0])
-
-        # Ensure the face-only crop does not exceed image boundaries
-        x_start = max(x - face_padding, 0)
-        y_start = max(y - face_padding, 0)
-        x_end = min(x + w + face_padding, img.shape[1])
-        y_end = min(y + h + face_padding, img.shape[0])
-
-        #make copy of img variable before drawing square, so the green square does not appear in the face-only crop photo
-        img_copy = img.copy()
-        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-        # Crop the face with padding, makes preview image and actual face-only image that will be used to generate pHash
-        face_crop = img[y_start_preview:y_end_preview, x_start_preview:x_end_preview]
-        face_only_crop = img_copy[y_start:y_end, x_start:x_end]
-
-        _, buffer = cv2.imencode('.png', face_only_crop)
-        face_base64_img = base64.b64encode(buffer).decode('utf-8')
-
-        #draw green square on preview image
-        cv2.rectangle(face_crop, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-        _, buffer = cv2.imencode('.png', face_crop)
-        preview_base64_img = base64.b64encode(buffer).decode('utf-8')
-
-        """
-
         img_copy = img.copy()
 
         #draw rectangle on image
@@ -362,6 +355,51 @@ def scan_image_for_face(img):
         face_hash_string = str(face_hash)
 
         return {"success": True, "reason": "OpenCV ran successfully on provided image.", "hash": face_hash, "hash_string": face_hash_string, "image": face_preview_base64_img}
+    
+def create_lsh_from_image(img, returnEncrypted):
+    #img is byte64 string, represents image
+    # Decode Base64 back to an image
+    img_data = base64.b64decode(img)
+    np_arr = np.frombuffer(img_data, np.uint8)
+    img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+    # Convert to grayscale for better face detection
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # Detect faces
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+    if len(faces) < 1:
+        return {"success": False, "reason": "No face detected in image."}
+    if len(faces) > 1:
+        return {"success": False, "reason": "Too many faces detected in image."}
+
+    print(f"Detected {len(faces)} face(s).")
+
+    for (x, y, w, h) in faces:
+        face_region = img[y:y+h, x:x+w]
+
+        # Convert the face region from BGR to RGB
+        face_region_rgb = cv2.cvtColor(face_region, cv2.COLOR_BGR2RGB)
+
+        # Get face encodings from the cropped face region
+        encodings = face_recognition.face_encodings(img)
+        if encodings:
+            face_encoding = encodings[0]
+            print("Face encoding obtained.")
+        else:
+            print("No face encoding found.")
+
+        if returnEncrypted == True:
+            # Convert to a JSON string
+            encoding_str = json.dumps(face_encoding.tolist())  
+            print(encoding_str)  # This is what we will encrypt
+
+            encrypted_encoding = encrypt_encoding(encoding_str, face_hash_secret_key)
+            print("Encrypted:", encrypted_encoding)
+
+            return {"success": True, "reason": "OpenCV ran successfully. Face embedding created and hashed successfully.", "hash": encrypted_encoding, "encoding": encrypted_encoding}
+        else:
+            return {"success": True, "reason": "OpenCV ran successfully. Face embedding created and hashed successfully.", "hash": None, "encoding": face_encoding}
     
 @login_bp.route('/checkface', methods=['POST'])
 def run_face_recognition():
@@ -395,86 +433,3 @@ def run_face_recognition():
             face_recognition_output_images_only.append({"image": result.get("image")})
         
     return jsonify({"success": True, "reason": "OpenCV ran successfully and detected a face in all three photos.", "output": face_recognition_output_images_only})
-
-"""
-    #finally, compare hamming distance of three detected faces for similarity comparison.
-    hamming_distance_limit = 5
-    hamming_distance_failed = False
-
-    for face_output in face_recognition_output:
-        for inner_face_ouput in face_recognition_output:
-            print("Comparing PHash: " + face_output.get("hash_string") + " to " + inner_face_ouput.get("hash_string"))
-            hamming_distance = (face_output.get("hash") - inner_face_ouput.get("hash"))
-            print("Hamming Distance: " + str(hamming_distance) + ".")
-            if hamming_distance > hamming_distance_limit:
-                print("Hamming Distance exceeds allowed limit. Face comparison failed.")
-                hamming_distance_failed = True
-
-    if hamming_distance_failed:
-        return jsonify({"success": False, "reason": "OpenCV ran successfully, but faces found in three photos do not match. Please ensure they are as similar as possible."})
-    else:
-        #need to take out imagehash from array because it is not JSON serializable
-        final_face_recognition_return_array = []
-
-        for output in face_recognition_output:
-            final_face_recognition_return_array.append({"hash": output.get("hash_string"), "image": output.get("image")})
-
-        return jsonify({"success": True, "reason": "OpenCV ran successfully. Face similarity check passed between three photos.", "output": final_face_recognition_return_array})
-    
-    return False
-
-    # Decode Base64 back to an image
-    img_data = base64.b64decode(img_base64)
-    np_arr = np.frombuffer(img_data, np.uint8)
-    img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-
-    # Convert to grayscale for better face detection
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    
-    # Detect faces
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-
-    faces_list = []
-
-    for (x, y, w, h) in faces:
-        padding = 50  # Increase this value for a larger margin
-
-        # Ensure the new coordinates are within the image boundaries
-        x_start = max(x - padding, 0)
-        y_start = max(y - padding, 0)
-        x_end = min(x + w + padding, img.shape[1])
-        y_end = min(y + h + padding, img.shape[0])
-
-        # Crop the face with extra space
-        face_crop = img[y_start:y_end, x_start:x_end]
-
-        # Encode the detected face with bounding box to Base64 (PNG)
-        _, detected_face_img_encoded = cv2.imencode('.png', face_crop)
-        face_img_base64_out = base64.b64encode(detected_face_img_encoded).decode('utf-8')
-
-        # Generate hash for the face
-        face_hash = perceptual_hash_from_base64(face_img_base64_out)
-        print(face_hash)
-
-        # Draw rectangle around face
-        cv2.rectangle(face_crop, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-        # Encode the final image with bounding box to Base64
-        _, img_encoded = cv2.imencode('.png', img)
-        img_base64_out = base64.b64encode(img_encoded).decode('utf-8')
-
-        faces_list.append({"x": int(x), "y": int(y), "w": int(w), "h": int(h), "hash": face_hash})
-    
-
-    # Return face coordinates
-    faces_list = [{"x": int(x), "y": int(y), "w": int(w), "h": int(h)} for (x, y, w, h) in faces]
-
-    if len(faces_list) < 1:
-        return jsonify({"success": False, "reason": "No face detected in image!"})
-    if len(faces_list) > 1:
-        return jsonify({"success": False, "reason": "Two or more faces detected! Only one face should be uploaded."})
-    
-    return jsonify({"success": True, "reason": "OpenCV ran successfully.", "faces_detected": len(faces_list), "faces": faces_list, "image": face_img_base64_out, "hamming_distance": hash1 - hash2})
-    #except Exception as e:
-        #return jsonify({"success": False, "reason": str(e)})
-        """

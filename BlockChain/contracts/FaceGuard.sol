@@ -5,7 +5,7 @@ contract FaceGuard {
     struct User {
         string username;
         string passwordHash;
-        bytes8[] faceHashes;
+        string[] faceHashes;
         string[] permissions;
         string applicationKey;
         bool enabled;
@@ -40,12 +40,12 @@ contract FaceGuard {
         owner = msg.sender;
     }
 
-    function registerUser(string memory username, string memory passwordHash, bytes8[] memory initialFaceHashes, string memory applicationKey) public onlyOwner {
+    function registerUser(string memory username, string memory passwordHash, string[] memory initialFaceHashes, string memory applicationKey) public onlyOwner {
         users[username] = User(username, passwordHash, initialFaceHashes, new string[](0), applicationKey, true);
         emit UserRegistered(username, applicationKey);
     }
 
-    function getUserFaceHashes(string memory username) public view returns (bytes8[] memory) {
+    function getUserFaceHashes(string memory username) public view returns (string[] memory) {
         return users[username].faceHashes;
     }
 
@@ -54,7 +54,7 @@ contract FaceGuard {
         emit PasswordUpdated(username);
     }
 
-    function updateUserFaceHash(string memory username, bytes8[] memory newFaceHashes) public onlyOwner {
+    function updateUserFaceHash(string memory username, string[] memory newFaceHashes) public onlyOwner {
         users[username].faceHashes = newFaceHashes;
         emit FaceHashUpdated(username);
     }
@@ -74,7 +74,7 @@ contract FaceGuard {
         return bytes(users[username].username).length > 0;
     }
 
-    function getUser(string memory username) public view returns (string memory, string memory, bytes8[] memory, string[] memory, string memory, bool) {
+    function getUser(string memory username) public view returns (string memory, string memory, string[] memory, string[] memory, string memory, bool) {
         User memory user = users[username];
         return (user.username, user.passwordHash, user.faceHashes, user.permissions, user.applicationKey, user.enabled);
     }

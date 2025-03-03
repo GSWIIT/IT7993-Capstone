@@ -45,44 +45,67 @@ const LoginPage: React.FC = () => {
   const [showLoginFaceAuthOverlay, setShowLoginFaceAuthOverlay] = useState(false);
 
   // ----- Helper functions -----
-  const startWebcamCapture = () => {
-    if (videoRef.current) {
-      navigator.mediaDevices
-        .getUserMedia({ video: true })
-        .then((stream) => {
-          videoRef.current!.srcObject = stream;
-        })
-        .catch((err) => {
-          console.error('Error accessing webcam: ', err);
-          alert('Unable to access webcam.');
-        });
-    }
+  const startWebcamCapture = async () => {
+    console.log("Waiting for video element to be ready...");
+
+    // Wait for video element to be ready
+    await waitForVideoElement();
+
+    console.log("videoRef is ready:", videoRef.current);
+
+    navigator.mediaDevices
+      .getUserMedia({ video: true })
+      .then((stream) => {
+        console.log("Webcam access granted.");
+        videoRef.current!.srcObject = stream;
+        videoRef.current!.play();
+      })
+      .catch((err) => {
+        console.error("Error accessing webcam:", err);
+        alert("Unable to access webcam.");
+      });
+  };
+
+  // Function to wait until the video element is available
+  const waitForVideoElement = () => {
+    return new Promise<void>((resolve) => {
+      const interval = setInterval(() => {
+        if (videoRef.current) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 100); // Check every 100ms
+    });
   };
 
   const capturePhoto = () => {
-    // Reset if already taken three photos
     if (photosTaken >= 3) {
       setPhotosTaken(0);
     }
-    let canvasRefToUse: React.RefObject<HTMLCanvasElement> | null = null;
-    if (photosTaken === 0) canvasRefToUse = canvas1Ref;
-    else if (photosTaken === 1) canvasRefToUse = canvas2Ref;
-    else if (photosTaken === 2) canvasRefToUse = canvas3Ref;
-
-    if (canvasRefToUse?.current && videoRef.current) {
-      const context = canvasRefToUse.current.getContext('2d');
-      if (context) {
-        context.drawImage(
-          videoRef.current,
-          0,
-          0,
-          canvasRefToUse.current.width,
-          canvasRefToUse.current.height
-        );
+  
+    setShowPhotoContainer(true); // Ensure canvas is rendered
+  
+    setTimeout(() => {
+      const canvasRefToUse =
+        photosTaken === 0 ? canvas1Ref :
+        photosTaken === 1 ? canvas2Ref :
+        photosTaken === 2 ? canvas3Ref : null;
+  
+      if (canvasRefToUse?.current && videoRef.current) {
+        const context = canvasRefToUse.current.getContext('2d');
+        if (context) {
+          context.drawImage(
+            videoRef.current,
+            0,
+            0,
+            canvasRefToUse.current.width,
+            canvasRefToUse.current.height
+          );
+        }
       }
-    }
-    setShowPhotoContainer(true);
-    setPhotosTaken(photosTaken + 1);
+    }, 200); // Small delay to allow rendering
+  
+    setPhotosTaken((prev) => prev + 1);
   };
 
   const displayFaceRecognitionMessage = (message: string, success: boolean) => {
@@ -105,7 +128,7 @@ const LoginPage: React.FC = () => {
     const photos = [base64Image1, base64Image2, base64Image3];
     setPhotoArray(photos);
 
-    fetch('http://127.0.0.1:5000/auth/run_face_recognition', {
+    fetch('http://127.0.0.1:5000/auth/checkface', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ faceArray: photos }),
