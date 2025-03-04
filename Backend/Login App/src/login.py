@@ -9,10 +9,15 @@ import numpy as np
 import base64
 from PIL import Image
 import imagehash
+from imagehash import dhash
 import io
 import face_recognition
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
+from datasketch import MinHash
+import pickle
+import hashlib
+from collections import Counter
 
 login_bp = Blueprint('login', __name__, template_folder='templates')
 
@@ -22,7 +27,7 @@ face_hash_secret_key = "Anthony123!!!!!!".encode() #for testing only
 
 # Configurations
 ALCHEMY_API_URL = "https://eth-sepolia.g.alchemy.com/v2/Dv7X6LhBni2gxlcUzAPs51cKqdUHK-8Y"
-CONTRACT_ADDRESS = "0x07541b4880862f6EEf1FAf76Cae858789060F723"
+CONTRACT_ADDRESS = "0xC8C34F83d6B15a9d3043B6A5a9b2E79926b2A94E"
 PRIVATE_KEY = "9ea2167fb16f55f70f2afca8644f9903b8f05f45c6268cf5c435b5df777c82a5"  # Owner's private key, need to delete later
 #need to set up dotenv
 #PRIVATE_KEY = os.getenv("PRIVATE_KEY")  # Owner's private key
@@ -56,6 +61,8 @@ w3.eth.default_account = owner_address
 #a list to hold users temporarily while they are trying to 2FA, so we don't have to query the blockchain every time.
 temporary_user_storage = []
 
+NUM_PERM = 128  # Ensure the same number of permutations throughout
+
 def hash_password(password: str) -> str:
     """Simulates hashing of password (should match how it's stored in contract)."""
     return hashlib.sha256(password.encode()).hexdigest()
@@ -88,19 +95,66 @@ def binary_string_to_int_array(binary_str):
 def hamming_distance(str1, str2):
     return sum(b1 != b2 for b1, b2 in zip(str1, str2))
 
-def encrypt_encoding(encoding_str, key):
-    cipher = AES.new(key, AES.MODE_CBC)  # AES cipher in CBC mode
-    iv = cipher.iv  # Initialization vector
-    encrypted_bytes = cipher.encrypt(pad(encoding_str.encode(), AES.block_size))
-    return base64.b64encode(iv + encrypted_bytes).decode()  # Store as base64 string
+def create_lsh_hash(embedding, num_perm=NUM_PERM):
+    """Converts a face embedding into an LSH-compatible MinHash object."""
+    m = MinHash(num_perm=num_perm)
+    for value in embedding:
+        m.update(str(value).encode('utf8'))  # Ensure encoding is consistent
+    return m
 
-def decrypt_encoding(encrypted_str, key):
-    encrypted_data = base64.b64decode(encrypted_str)
-    iv = encrypted_data[:16]  # Extract IV
-    encrypted_bytes = encrypted_data[16:]  # Extract ciphertext
-    cipher = AES.new(key, AES.MODE_CBC, iv)
-    decrypted_str = unpad(cipher.decrypt(encrypted_bytes), AES.block_size).decode()
-    return decrypted_str
+def minhash_to_flat_uint256_array(minhash_list):
+    """Flattens multiple MinHashes into a single uint256[] array for Solidity storage."""
+    flat_array = []
+    for minhash in minhash_list:
+        flat_array.extend(minhash.hashvalues.tolist())  # Convert to Python list explicitly
+    return flat_array
+
+def flat_uint256_array_to_minhash_list(flat_array, num_perm=NUM_PERM):
+    """Reconstructs a list of MinHash objects from a flat uint256 array."""
+    num_hashes = len(flat_array) // num_perm  # Determine number of MinHash objects
+    minhash_list = []
+
+    for i in range(num_hashes):
+        m = MinHash(num_perm=num_perm)
+        m.hashvalues = np.array(flat_array[i * num_perm:(i + 1) * num_perm], dtype=np.uint64)
+        minhash_list.append(m)
+
+    return minhash_list
+
+def compare_lsh_hashes(hash1, hash2):
+    """Compares two MinHash objects using Jaccard similarity."""
+    return hash1.jaccard(hash2)
+
+def hash_face_encoding(face_encoding):
+    """ Convert the face encoding to a Locality-Sensitive Hash (LSH) """
+    # Normalize and convert encoding to a string
+    encoding_str = ''.join(format(int(e * 1000), '04x') for e in face_encoding)
+
+    # Use a perceptual hash (dhash) for stability
+    hash_value = dhash(Image.fromarray(np.uint8(face_encoding.reshape(16, 8) * 255)))
+    
+    return str(hash_value)
+
+def hamming_distance(hash1, hash2):
+    """ Calculate the Hamming Distance between two hex hashes """
+    # Convert hex hashes to binary
+    bin1 = bin(int(hash1, 16))[2:].zfill(64)  # Ensures 64-bit length
+    bin2 = bin(int(hash2, 16))[2:].zfill(64)
+
+    # Count differing bits
+    return sum(c1 != c2 for c1, c2 in zip(bin1, bin2))
+
+def compare_face_hashes(new_encoding, stored_hash):
+    """ Compare hashes using Hamming Distance """
+    new_hash = hash_face_encoding(new_encoding)  # Generate new hash
+
+    # Compute Hamming Distance
+    distance = hamming_distance(new_hash, stored_hash)
+
+    print("Distance between hashes: " + str(distance))
+
+    # Set threshold (adjust based on testing)
+    return distance < 10  # Lower value means closer match
 
 @login_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -160,26 +214,24 @@ def check_face_for_2FA():
                 return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
 
     #finally, compare euclidean distance of three detected faces for similarity comparison.
-    euclidean_distance_limit = 10
+    hamming_distance_limit = 4
 
     for frameIndex, frameToScan in enumerate(frames):
         #need to make sure frame is not empty before trying to scan it
         if(frameToScan is None) or (frameToScan == ""):
             continue
 
-        frameResult = create_lsh_from_image(frameToScan, False)
-        if frameResult["success"]:
+        frameEncoding = create_lsh_from_image(frameToScan)
+        
+        if frameEncoding["success"]:
             print("Comparing face embeddings with frame " + str(frameIndex) + "...")
             for hashIndex, userHash in enumerate(user_obj[2]):
                 # Compute Euclidean distance
-                userHash_string = decrypt_encoding(userHash, face_hash_secret_key)
-                print("decrypted")
-                userHash = np.array(json.loads(userHash_string))
-                print(frameResult["encoding"], userHash)
-                results = face_recognition.compare_faces([userHash], frameResult["encoding"])
+                print(frameEncoding["hash"])
+                print(userHash)
+                results = hamming_distance(frameEncoding["hash"], userHash)
                 print("Hamming distance [Frame " + str(frameIndex) + " vs User LSH " + str(hashIndex) + "]: " + str(results))
-                print(results[0])
-                if results[0] == True:
+                if results <= hamming_distance_limit:
                     print("Hamming distance below limit. Returning success...")
                     return jsonify({"success": True, "reason": "Face verified successfully."})
     
@@ -219,7 +271,7 @@ def signup():
     face_image_data = []
     for img in faceImages:
         #result = scan_image_for_face(img)
-        result = create_lsh_from_image(img, True)
+        result = create_lsh_from_image(img)
         if result["success"]:
             face_image_data.append(result)
         else:
@@ -230,6 +282,11 @@ def signup():
     face_hash_array = []
     for face in face_image_data:
         face_hash_array.append(face["hash"])
+
+    #print(face_hash_array)
+    #face_minhash_flat_array = minhash_to_flat_uint256_array(face_hash_array)
+    #print("flattened array")
+    #print(face_minhash_flat_array)
 
     """
     #we have to convert the phash array to a hex string so it can be stored in solidity
@@ -356,7 +413,7 @@ def scan_image_for_face(img):
 
         return {"success": True, "reason": "OpenCV ran successfully on provided image.", "hash": face_hash, "hash_string": face_hash_string, "image": face_preview_base64_img}
     
-def create_lsh_from_image(img, returnEncrypted):
+def create_lsh_from_image(img):
     #img is byte64 string, represents image
     # Decode Base64 back to an image
     img_data = base64.b64decode(img)
@@ -388,18 +445,11 @@ def create_lsh_from_image(img, returnEncrypted):
             print("Face encoding obtained.")
         else:
             print("No face encoding found.")
+            return {"success": False, "reason": "No face encoding found."}
 
-        if returnEncrypted == True:
-            # Convert to a JSON string
-            encoding_str = json.dumps(face_encoding.tolist())  
-            print(encoding_str)  # This is what we will encrypt
-
-            encrypted_encoding = encrypt_encoding(encoding_str, face_hash_secret_key)
-            print("Encrypted:", encrypted_encoding)
-
-            return {"success": True, "reason": "OpenCV ran successfully. Face embedding created and hashed successfully.", "hash": encrypted_encoding, "encoding": encrypted_encoding}
-        else:
-            return {"success": True, "reason": "OpenCV ran successfully. Face embedding created and hashed successfully.", "hash": None, "encoding": face_encoding}
+        lsh_hash_obj = hash_face_encoding(face_encoding)
+        
+        return {"success": True, "reason": "OpenCV ran successfully. Face embedding created and hashed successfully.", "hash": lsh_hash_obj, "encoding": lsh_hash_obj}
     
 @login_bp.route('/checkface', methods=['POST'])
 def run_face_recognition():

@@ -248,18 +248,23 @@ const LoginPage: React.FC = () => {
   };
 
   const capture2FAFrames = () => {
-    if (video2FARef.current) {
-      navigator.mediaDevices
-        .getUserMedia({ video: true })
-        .then((stream) => {
-          video2FARef.current!.srcObject = stream;
-        })
-        .catch((err) => {
-          console.error('Error accessing webcam: ', err);
-          alert('Unable to access webcam.');
-        });
-    }
     setShowLoginFaceAuthOverlay(true);
+
+    const videoCheckInterval = setInterval(() => {
+      if (video2FARef.current) {
+        clearInterval(videoCheckInterval); // Stop checking once the element is available
+        navigator.mediaDevices
+          .getUserMedia({ video: true })
+          .then((stream) => {
+            video2FARef.current!.srcObject = stream;
+          })
+          .catch((err) => {
+            console.error('Error accessing webcam: ', err);
+            alert('Unable to access webcam.');
+          });
+      }
+    }, 100); // Check every 100ms
+
     const frameCount = 5;
     const interval = 400;
     let count = 0;
