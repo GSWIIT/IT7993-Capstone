@@ -1,72 +1,5 @@
+
 /* You can add global styles to this file, and also import other style files */
-* {
-    font-family: Georgia;
-    text-wrap: wrap;
-    margin: 0;
-	padding: 0;
-}
-
-h2 {
-    font-size: 2rem;
-}
-
-body {
-    background: white;
-}
-
-label {
-    text-align: left;
-    display: block;
-}
-
-input {
-    box-sizing: border-box;
-    border-radius: 4px;
-/*display: block;*/
-    width: 100%;    
-    background: lightgray;
-    border: 1px black;
-    padding: 10px;
-}
-
-textarea{
-    box-sizing: border-box;
-    border-radius: 4px;
-    /*display: block;*/
-    width: 100%;    
-    background: lightgray;
-    border: 1px black;
-    /*padding: 10px;*/
-}
-
-input:focus {
-    outline: 2px solid black;
-}
-
-button {
-    background-color: green;
-    border-radius: 30px;
-    border: 1px solid white;
-    color: white;
-    padding: 10px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 40px;
-    padding-right: 40px;
-}
-
-button:hover {
-    background-color: lightgreen;
-}
-
-button:active {
-    position:relative;
-	top:1px;
-}
-
-a {
-    text-decoration: none;
-}
 
 .small_padding {
     padding: 10px;
@@ -211,6 +144,7 @@ a {
     border-radius: 5px;
     inline-size: 300px;
     text-align: center;
+    display: block;
 }
 
 /* Spinner animation */
@@ -227,4 +161,37 @@ a {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+#capture-container{
+    display: block;
+    align-items: center;
+}
+#video{
+    display: block;
+    margin: auto;
+    width: 320px;
+    height: 240px;
+}
+#photo-container {
+    display: flex;
+    flex-wrap: nowrap;
+    width: auto;
+  }
+#canvas1{
+    display: inline-block;
+    margin: auto;
+    width: 320px;
+    height: 240px;
+}
+#canvas2{
+    display: inline-block;
+    margin: auto;
+    width: 320px;
+    height: 240px;
+}
+#canvas3{
+    display: inline-block;
+    margin: auto;
+    width: 320px;
+    height: 240px;
 }
