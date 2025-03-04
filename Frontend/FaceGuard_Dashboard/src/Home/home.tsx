@@ -4,11 +4,26 @@ import { Link } from "react-router-dom";
 import backgroundvideo from "../assets/backgroundvideo.mp4";
 
 const home: React.FC = () => {
+  const checkSession = async () => {
+    const response = await fetch("http://127.0.0.1:5000/session/checksession", {
+      method: "GET",
+      credentials: "include", // Send session cookies
+    });
+  
+    if (response.ok) {
+      console.log(response.json())
+      return await response.json(); // Get user info
+    } else {
+      return null;
+    }
+  };
   
   const onLogOutClick = () => {
     console.log("Logging out...");
     // Add logout logic here
   };
+
+  checkSession()
 
   return (
     <div> 

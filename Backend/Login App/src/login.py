@@ -18,6 +18,7 @@ from datasketch import MinHash
 import pickle
 import hashlib
 from collections import Counter
+from session import create_session, destroy_session, get_session
 
 login_bp = Blueprint('login', __name__, template_folder='templates')
 
@@ -32,7 +33,7 @@ PRIVATE_KEY = "9ea2167fb16f55f70f2afca8644f9903b8f05f45c6268cf5c435b5df777c82a5"
 #need to set up dotenv
 #PRIVATE_KEY = os.getenv("PRIVATE_KEY")  # Owner's private key
 
-abi_file_path = os.path.abspath("../../BlockChain/artifacts/contracts/FaceGuard.sol/FaceGuard.json")
+abi_file_path = os.path.abspath("./BlockChain/artifacts/contracts/FaceGuard.sol/FaceGuard.json")
 print(f"Loading ABI from: {abi_file_path}")
 
 with open(abi_file_path, "r") as f:
@@ -78,53 +79,6 @@ def check_username_exists(username):
         print("Username exists in system already!")
         return True
     
-#for generating Locality-Sensitive Hashing (LSH) values for face embeddings
-def generate_random_hyperplanes(num_planes, dimension):
-    # Generates random hyperplanes for the LSH transformation
-    return np.random.randn(num_planes, dimension)
-
-def lsh_embedding(embedding, hyperplanes):
-    # Projects the embedding onto each hyperplane and thresholds to generate a binary vector
-    projection = np.dot(hyperplanes, embedding)
-    binary_hash = projection > 0  # Boolean array: True if positive, False otherwise
-    return binary_hash.astype(int)
-
-def binary_string_to_int_array(binary_str):
-    return np.array(list(binary_str), dtype=int)
-
-def hamming_distance(str1, str2):
-    return sum(b1 != b2 for b1, b2 in zip(str1, str2))
-
-def create_lsh_hash(embedding, num_perm=NUM_PERM):
-    """Converts a face embedding into an LSH-compatible MinHash object."""
-    m = MinHash(num_perm=num_perm)
-    for value in embedding:
-        m.update(str(value).encode('utf8'))  # Ensure encoding is consistent
-    return m
-
-def minhash_to_flat_uint256_array(minhash_list):
-    """Flattens multiple MinHashes into a single uint256[] array for Solidity storage."""
-    flat_array = []
-    for minhash in minhash_list:
-        flat_array.extend(minhash.hashvalues.tolist())  # Convert to Python list explicitly
-    return flat_array
-
-def flat_uint256_array_to_minhash_list(flat_array, num_perm=NUM_PERM):
-    """Reconstructs a list of MinHash objects from a flat uint256 array."""
-    num_hashes = len(flat_array) // num_perm  # Determine number of MinHash objects
-    minhash_list = []
-
-    for i in range(num_hashes):
-        m = MinHash(num_perm=num_perm)
-        m.hashvalues = np.array(flat_array[i * num_perm:(i + 1) * num_perm], dtype=np.uint64)
-        minhash_list.append(m)
-
-    return minhash_list
-
-def compare_lsh_hashes(hash1, hash2):
-    """Compares two MinHash objects using Jaccard similarity."""
-    return hash1.jaccard(hash2)
-
 def hash_face_encoding(face_encoding):
     """ Convert the face encoding to a Locality-Sensitive Hash (LSH) """
     # Normalize and convert encoding to a string
@@ -233,8 +187,11 @@ def check_face_for_2FA():
                 print("Hamming distance [Frame " + str(frameIndex) + " vs User LSH " + str(hashIndex) + "]: " + str(results))
                 if results <= hamming_distance_limit:
                     print("Hamming distance below limit. Returning success...")
-                    return jsonify({"success": True, "reason": "Face verified successfully."})
+                    temporary_user_storage.pop()
+                    session_data = create_session(user_obj[0]) #create a session for the user.
+                    return jsonify({"success": True, "reason": "Face verified successfully. Login successful!", "session": session_data})
     
+    temporary_user_storage.pop()
     return jsonify({"success": False, "reason": "User's face not detected."})
 
 @login_bp.route('/usernamecheck', methods=['POST'])
@@ -282,25 +239,6 @@ def signup():
     face_hash_array = []
     for face in face_image_data:
         face_hash_array.append(face["hash"])
-
-    #print(face_hash_array)
-    #face_minhash_flat_array = minhash_to_flat_uint256_array(face_hash_array)
-    #print("flattened array")
-    #print(face_minhash_flat_array)
-
-    """
-    #we have to convert the phash array to a hex string so it can be stored in solidity
-    imagehash_phash_hex_array = []
-    for result in face_image_data:
-        # Convert pHash to bytes
-        phash_int = int(result["hash_string"], 16)  # Convert pHash to integer from hex
-        # Convert to a compact hex string
-        phash_hex = format(phash_int, '016x')  # Ensures it's always 16 characters (64 bits)
-        phash_hex = "0x" + phash_hex  # Prefix with '0x' for Solidity compatibility
-
-        print(phash_hex)  # Example Output: 0xabcdef1234567890
-        imagehash_phash_hex_array.append(phash_hex)
-    """
 
     print("Estimating gas...")
     #estimate the cost of the ethereum transaction by predicting gas

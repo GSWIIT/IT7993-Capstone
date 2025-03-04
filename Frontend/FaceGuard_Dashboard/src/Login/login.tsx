@@ -292,12 +292,14 @@ const LoginPage: React.FC = () => {
         })
           .then((response) => response.json())
           .then((result) => {
+            console.log(result)
             if (result.success) {
               close2FAFaceOverlay();
               displayLoadingPrompt(
                 'Face detected! Two Factor authentication successful.',
                 true
               );
+              localStorage.setItem("session", result.session); // Store username locally
               window.location.href = '/home';
             } else {
               setTwoFAErrorMessage(result.reason);
