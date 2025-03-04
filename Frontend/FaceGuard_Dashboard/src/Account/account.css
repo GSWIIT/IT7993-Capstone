@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+.container {
+    margin-left: 0;
+    margin-right: 0;
+    max-width: 100%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center; 
+    background: rgba(3,9,16,255);
+    padding: 5px;
+}
+
+#logo{
+    color: rgba(85,249,239,255);
+    font-size: 45px;
+    font-weight: bold;
+}
+.navbar{
+    display: inline-block;
+}
+
+.icon {
+    display: inline-block;
+    text-align: center;
+    align-items: center;
+    padding: 10px;
+    color: white;
+    margin-right: 35%;
+    margin-left: 5%;
+}
+.navbar > a {
+    margin-left: 10px;
+    display: inline-block;
+    color: white;
+    text-align: center;
+    padding: 15px;
+    font-size: 20px;
+}
+.navbar > a:hover {
+    background-color: rgb(144, 238, 213);
+    border-radius: 15px;
+    color: black;
+    cursor: pointer;
+}
+
+.active {
+    font-weight: bold;
+    font-size: 25px;
+}
+.video-container {
+    position: fixed;
+    top: 97px;
+    left: 0;
+    width: 100vw;
+    height: 100%;
+    overflow: hidden;
+    z-index: -1;
+}
+
+.video-container video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    transform: translate(-50%, -50%);
+    object-fit: cover;
+}
+
+/* Content */
+.title{
+    margin: 5rem 0 5rem 0;
+    margin-top: 5rem;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    color: white;
+    text-align: center;
+    font-size: 4rem;
+    font-weight: bold;
+}
+.content-container {
+    margin: auto;
+    align-items: center;
+    position: relative;
+    color: black;
+    text-align: center;
+    background-color: white;
+    border: 50%;
+    height: 100%;
+    width: 85%;
+    border-radius: 20px;
+}
+.account-navbar{
+    background-color: rgb(235, 235, 235);
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    position: relative; /* Make the navbar fixed */
+    top: 0; /* Position it at the top */
+}
+.account-navbar > a{
+
+    margin-left: 5%;
+    margin-right: 5%;
+    color: black;
+    display: inline-block;
+    text-align: center;
+    padding: 30px;
+    font-size: 30px;
+}
+.account-navbar > a:hover {
+    color: rgba(18,166,159,255);
+    cursor: pointer;
+
+    
+    
+}
+.main{
+    margin-top: 20%;
+    color: white;
+    background-color: black;
+}
+section{
+    margin-top: 0;
+}
