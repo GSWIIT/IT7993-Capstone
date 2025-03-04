@@ -1,4 +1,4 @@
-@import "tailwindcss";
+
 /* You can add global styles to this file, and also import other style files */
 
 .small_padding {
@@ -144,6 +144,7 @@
     border-radius: 5px;
     inline-size: 300px;
     text-align: center;
+    display: block;
 }
 
 /* Spinner animation */
@@ -160,4 +161,37 @@
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+#capture-container{
+    display: block;
+    align-items: center;
+}
+#video{
+    display: block;
+    margin: auto;
+    width: 320px;
+    height: 240px;
+}
+#photo-container {
+    display: flex;
+    flex-wrap: nowrap;
+    width: auto;
+  }
+#canvas1{
+    display: inline-block;
+    margin: auto;
+    width: 320px;
+    height: 240px;
+}
+#canvas2{
+    display: inline-block;
+    margin: auto;
+    width: 320px;
+    height: 240px;
+}
+#canvas3{
+    display: inline-block;
+    margin: auto;
+    width: 320px;
+    height: 240px;
 }

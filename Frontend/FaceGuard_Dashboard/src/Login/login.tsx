@@ -356,6 +356,7 @@ const LoginPage: React.FC = () => {
         displayLoadingPrompt(result.reason, result.success);
       });
   };
+  
 
   // ----------------- JSX -----------------
   return (
@@ -601,8 +602,9 @@ const LoginPage: React.FC = () => {
               </div>
             )}
             {showPhotoContainer && (
-              <div id="photo-container" style={{ display: 'block' }}>
+              <div id="photo-preview">
                 <h3>Preview</h3>
+                <div className="photo-container">
                 <canvas
                   id="canvas1"
                   width="320"
@@ -621,6 +623,7 @@ const LoginPage: React.FC = () => {
                   height="240"
                   ref={canvas3Ref}
                 ></canvas>
+                </div>
                 <br />
                 <button onClick={uploadForRecognition}>Upload Photos</button>
               </div>

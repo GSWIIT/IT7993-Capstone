@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./account.css";
-
 import backgroundvideo from "../assets/backgroundvideo.mp4";
 import { Link } from "react-router-dom";
 
@@ -10,6 +9,17 @@ const home: React.FC = () => {
     console.log("Logging out...");
     // Add logout logic here
   };
+
+  const handleScrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  useEffect(() => {
+    handleScrollToSection("profile");
+  }, []);
 
   return (
     <div> 
@@ -66,69 +76,76 @@ const home: React.FC = () => {
             </div>
             <div className="content-container">
                <nav className="account-navbar">
-                    <a href="#profile"
+                    <a
                         className="profile"
+                        onClick={() => handleScrollToSection("profile")}
                     >
                     Profile
                     </a>
-                    <a href="#password"
-                        className="Password"
+                    <a
+                        className="password"
+                        onClick={() => handleScrollToSection("password")}
                     >
                     Password
                     </a>
                     <a
-                        className="Groups"
+                        className="facereg"
+                        onClick={() => handleScrollToSection("facereg")}
                     >
                     Facial Recognition
                     </a>
                     <a
-                        className="Groups"
+                        className="delete"
+                        onClick={() => handleScrollToSection("delete")}
                     >
                     Delete Account
                     </a>
                 </nav>
+                <div className="content">
                  <section id="profile" className="main">
-                    <div className="spotlight">
-                      <div className="content">
-                        <header className="major">
-                          <h2>Ipsum sed adipiscing</h2>
-                        </header>
-                        <ul className="actions">
-                          <li><a href="generic.html" className="button">Learn More</a></li>
-                        </ul>
-                      </div>
-                      <span className="image"><img src="images/pic01.jpg" alt="" /></span>
+                    <header className="major">
+                      <h2>Edit Profile</h2>
+                    </header>
+                    <div className="profile-container">
+                      <input className="firstname-txt" type="text" placeholder="Firstname" />
+                      <input className="lastname-txt" type="text" placeholder="Lastname" />
                     </div>
+                    <button className="profile-btn">Submit</button>
 							    </section>
 
-                  <section id="password" className="main special">
+                  <section id="password" className="main">
                     <header className="major">
-                      <h2>Magna veroeros</h2>
+                      <h2>Change Password</h2>
                     </header>
-                    <ul className="features">
-                      <li>
-                        <span className="icon solid major style1 fa-code"></span>
-                        <h3>Ipsum consequat</h3>
-                        <p>Sed lorem amet ipsum dolor et amet nullam consequat a feugiat consequat tempus veroeros sed consequat.</p>
-                      </li>
-                      <li>
-                        <span className="icon major style3 fa-copy"></span>
-                        <h3>Amed sed feugiat</h3>
-                        <p>Sed lorem amet ipsum dolor et amet nullam consequat a feugiat consequat tempus veroeros sed consequat.</p>
-                      </li>
-                      <li>
-                        <span className="icon major style5 fa-gem"></span>
-                        <h3>Dolor nullam</h3>
-                        <p>Sed lorem amet ipsum dolor et amet nullam consequat a feugiat consequat tempus veroeros sed consequat.</p>
-                      </li>
-                    </ul>
-                    <footer className="major">
-                      <ul className="actions special">
-                        <li><a href="generic.html" className="button">Learn More</a></li>
-                      </ul>
-                    </footer>
+                    <div className="password-container">
+                      <input className="current-password-txt" type="text" placeholder="Current Password" />
+                      <input className="new-password-txt" type="text" placeholder="New Password" />
+                      <input className="confirm-password-txt" type="text" placeholder="Confirm New Password" />
+                    </div>
+                    <br></br>
+                    <button className="password-btn">Submit</button>
+              </section>
+
+               <section id="facereg" className="main">
+                    <header className="major">
+                      <h2>Facial Recognition</h2>
+                    </header>
+                    <p>Re-register Facial Recognition</p>
+                    <br></br>
+                    <button className="facereg-btn">Start</button>
 							</section> 
 
+               <section id="delete" className="main">
+                    <header className="major">
+                      <h2>Delete Account</h2>
+                    </header>
+                    <p>Are you sure you want to delete your account? This action cannot be undone.</p>
+                    <br></br>
+                    <button className="delete-btn">Delete Account</button>
+							</section>  
+
+
+              </div>
             </div>
         </div>
 

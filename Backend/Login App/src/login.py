@@ -27,7 +27,7 @@ PRIVATE_KEY = "9ea2167fb16f55f70f2afca8644f9903b8f05f45c6268cf5c435b5df777c82a5"
 #need to set up dotenv
 #PRIVATE_KEY = os.getenv("PRIVATE_KEY")  # Owner's private key
 
-abi_file_path = os.path.abspath("./BlockChain/artifacts/contracts/FaceGuard.sol/FaceGuard.json")
+abi_file_path = os.path.abspath("../../BlockChain/artifacts/contracts/FaceGuard.sol/FaceGuard.json")
 print(f"Loading ABI from: {abi_file_path}")
 
 with open(abi_file_path, "r") as f:

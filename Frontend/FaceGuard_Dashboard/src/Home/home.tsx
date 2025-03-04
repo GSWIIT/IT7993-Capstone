@@ -60,7 +60,7 @@ const home: React.FC = () => {
                 Your browser does not support HTML5 video.
             </video>
 
-            <div className="content">
+            <div className="content-home">
                 <h1>Welcome to FaceGuard</h1>
                 <Link to="/account">
                     <button className="account-btn">Go to Account</button>
