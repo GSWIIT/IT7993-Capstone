@@ -266,7 +266,7 @@ const LoginPage: React.FC = () => {
     }, 100); // Check every 100ms
 
     const frameCount = 5;
-    const interval = 400;
+    const interval = 150;
     let count = 0;
     const frames: string[] = [];
     const captureInterval = setInterval(() => {
@@ -283,6 +283,7 @@ const LoginPage: React.FC = () => {
         clearInterval(captureInterval);
         fetch('http://127.0.0.1:5000/auth/login-2FA-Face', {
           method: 'POST',
+          credentials: "include",
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             username: loginUsername,
@@ -299,7 +300,6 @@ const LoginPage: React.FC = () => {
                 'Face detected! Two Factor authentication successful.',
                 true
               );
-              localStorage.setItem("session", result.session); // Store username locally
               window.location.href = '/home';
             } else {
               setTwoFAErrorMessage(result.reason);

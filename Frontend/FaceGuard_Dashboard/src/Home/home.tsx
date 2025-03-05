@@ -1,29 +1,45 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./home.css";
 import { Link } from "react-router-dom";
 import backgroundvideo from "../assets/backgroundvideo.mp4";
 
 const home: React.FC = () => {
+  const navigator = useNavigate()
   const checkSession = async () => {
-    const response = await fetch("http://127.0.0.1:5000/session/checksession", {
-      method: "GET",
-      credentials: "include", // Send session cookies
-    });
-  
-    if (response.ok) {
-      console.log(response.json())
-      return await response.json(); // Get user info
-    } else {
-      return null;
-    }
+    fetch('http://127.0.0.1:5000/auth/check-session', {
+      method: 'GET',
+      credentials: "include"
+    })
+    .then((response) => response.json())
+    .then((result) => {
+      if(result.logged_in == false)
+      {
+        console.log("No login session detected!")
+        navigator("/")
+      }
+      else
+      {
+        console.log("Session: ", result)
+      }
+    })
   };
   
   const onLogOutClick = () => {
     console.log("Logging out...");
-    // Add logout logic here
+    fetch('http://127.0.0.1:5000/auth/logoff-session', {
+      method: 'GET',
+      credentials: "include"
+    })
+      .then((response) => response.json())
+      .then(() => {
+        window.location.href = '';
+      })
   };
 
-  checkSession()
+  useEffect(() => {
+    checkSession()
+  }, [])
 
   return (
     <div> 
@@ -40,19 +56,8 @@ const home: React.FC = () => {
           >
             Home
           </a>
-          <Link to="/account"><a
-            className="Account"
-          // onClick={() => handleNavigation("Account")}
-          >
-            Account Settings
-            
-          </a></Link>
-          <a
-            className="Groups"
-          //  onClick={() => handleNavigation("Posts")}
-          >
-            Group
-          </a>
+          <Link to="/account" className="Account" >Account Settings</Link>
+          <Link to="/permissions" className="Groups" >Groups & Permissions</Link>
           <a
             className="About"
           // onClick={() => handleNavigation("Appointment")}
