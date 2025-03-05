@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import './login.css';
+import backgroundvideo from "../assets/login.mp4";
 const LoginPage: React.FC = () => {
   // Refs for webcam and canvas elements
   const videoRef = useRef<HTMLVideoElement>(null!);
@@ -368,291 +369,302 @@ const LoginPage: React.FC = () => {
   // ----------------- JSX -----------------
   return (
     <>
-      {/* Link to external stylesheet */}
-      <div className="login_signup_container">
-        <div className="login_signup_column_left">
-          <div className="login_signup_center_left">
-            <div>
-              <h2 className="small_padding">Sign In</h2>
-              {showLoginMessage && (
-                <div id="loginMessageDiv" className="small_padding">
-                  <p id="loginMessage" className="error_message">
-                    {loginMessage}
-                  </p>
-                </div>
-              )}
-              <div>
-                <div className="small_padding">
-                  <input
-                    type="text"
-                    id="login_username"
-                    placeholder="Username"
-                    value={loginUsername}
-                    onChange={(e) => setLoginUsername(e.target.value)}
-                  />
-                </div>
-                <div className="small_padding">
-                  <input
-                    type="password"
-                    id="login_password"
-                    placeholder="Password"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                  />
+      <div className="login-video-container">
+          <video
+              className="login-background-video"
+              autoPlay
+              muted
+              loop
+          >
+              <source src={backgroundvideo} type="video/mp4" />
+          </video>
+        
+          <div className="login_signup_container">
+            <div className="login_signup_column_left">
+              <div className="login_signup_center_left">
+                <div>
+                  <h2 className="small_padding" id="signin-title">Sign In</h2>
+                  {showLoginMessage && (
+                    <div id="loginMessageDiv" className="small_padding">
+                      <p id="loginMessage" className="error_message">
+                        {loginMessage}
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <div className="small_padding">
+                      <input
+                        type="text"
+                        id="login_username"
+                        placeholder="Username"
+                        value={loginUsername}
+                        onChange={(e) => setLoginUsername(e.target.value)}
+                      />
+                    </div>
+                    <div className="small_padding">
+                      <input
+                        type="password"
+                        id="login_password"
+                        placeholder="Password"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <br />
+                  <button onClick={onSignInClick}>Sign In</button>
                 </div>
               </div>
-              <br />
-              <button onClick={onSignInClick}>Sign In</button>
+            </div>
+            <div className="login_signup_column_right">
+              <div className="login_signup_center_right">
+                {isInitialSignup ? (
+                  <div id="initial_signup_div" style={{ display: 'block' }}>
+                    <h2 className="white_text">New User?</h2>
+                    <p className="medium_padding white_text">
+                      No worries! Click the button below to create a free account
+                      with us.
+                    </p>
+                    <button onClick={onPreSignUpClick}>Sign Up</button>
+                  </div>
+                ) : (
+                  <div id="registration_signup_div" style={{ display: 'block' }}>
+                    <h2 className="small_padding white_text">Create Account</h2>
+                    {showSignupMessage && (
+                      <div id="signupMessageDiv" className="small_padding">
+                        <p id="signupMessage" className="error_message">
+                          {signupMessage}
+                        </p>
+                      </div>
+                    )}
+                    <div className="small_padding">
+                      <input
+                        type="text"
+                        className="white_outline"
+                        id="signup_username"
+                        placeholder="Your New Username"
+                        name="username"
+                        value={signupUsername}
+                        onChange={(e) => setSignupUsername(e.target.value)}
+                      />
+                    </div>
+                    <div className="small_padding">
+                      <input
+                        type="password"
+                        className="white_outline"
+                        id="signup_password"
+                        placeholder="Your Password"
+                        name="password"
+                        value={signupPassword}
+                        onChange={(e) => setSignupPassword(e.target.value)}
+                      />
+                    </div>
+                    <div className="small_padding">
+                      <input
+                        type="password"
+                        className="white_outline"
+                        id="signup_password_confirm"
+                        placeholder="Confirm Password"
+                        name="password_confirm"
+                        value={signupPasswordConfirm}
+                        onChange={(e) =>
+                          setSignupPasswordConfirm(e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="small_padding">
+                      <button
+                        id="signUpButton"
+                        onClick={onSignUpClick}
+                        disabled={signUpButtonDisabled}
+                      >
+                        Sign Up
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-        <div className="login_signup_column_right">
-          <div className="login_signup_center_right">
-            {isInitialSignup ? (
-              <div id="initial_signup_div" style={{ display: 'block' }}>
-                <h2 className="white_text">New User?</h2>
-                <p className="medium_padding white_text">
-                  No worries! Click the button below to create a free account
-                  with us.
-                </p>
-                <button onClick={onPreSignUpClick}>Sign Up</button>
-              </div>
-            ) : (
-              <div id="registration_signup_div" style={{ display: 'block' }}>
-                <h2 className="small_padding white_text">Create Account</h2>
-                {showSignupMessage && (
-                  <div id="signupMessageDiv" className="small_padding">
-                    <p id="signupMessage" className="error_message">
-                      {signupMessage}
+
+          {showLoadingOverlay && (
+            <div
+              id="loadingOverlay"
+              className="loading-overlay"
+              style={{ display: 'flex' }}
+            >
+              <div className="loading-box">
+                {showLoadingGraphics && (
+                  <div id="loadingGraphics">
+                    <img
+                      src="/src/assets/ethereum.png"
+                      alt="Ethereum Logo"
+                      className="loading-image"
+                    />
+                    <div className="spinner"></div>
+                    <p>
+                      Communicating with BlockChain, please wait... (this may take a
+                      minute)...
                     </p>
                   </div>
                 )}
-                <div className="small_padding">
-                  <input
-                    type="text"
-                    className="white_outline"
-                    id="signup_username"
-                    placeholder="Your New Username"
-                    name="username"
-                    value={signupUsername}
-                    onChange={(e) => setSignupUsername(e.target.value)}
-                  />
-                </div>
-                <div className="small_padding">
-                  <input
-                    type="password"
-                    className="white_outline"
-                    id="signup_password"
-                    placeholder="Your Password"
-                    name="password"
-                    value={signupPassword}
-                    onChange={(e) => setSignupPassword(e.target.value)}
-                  />
-                </div>
-                <div className="small_padding">
-                  <input
-                    type="password"
-                    className="white_outline"
-                    id="signup_password_confirm"
-                    placeholder="Confirm Password"
-                    name="password_confirm"
-                    value={signupPasswordConfirm}
-                    onChange={(e) =>
-                      setSignupPasswordConfirm(e.target.value)
-                    }
-                  />
-                </div>
-                <div className="small_padding">
-                  <button
-                    id="signUpButton"
-                    onClick={onSignUpClick}
-                    disabled={signUpButtonDisabled}
-                  >
-                    Sign Up
-                  </button>
-                </div>
+                {showLoadingPromptOverlay && (
+                  <div id="loadingPromptOverlay" style={{ display: 'block' }}>
+                    <img
+                      id="loadingPromptImage"
+                      src={
+                        loadingPromptSuccess
+                          ? '/src/assets/ethereum.png'
+                          : '/src/assets/error icon.png'
+                      }
+                      alt="Prompt"
+                      className="error-image"
+                    />
+                    <p
+                      id="loadingPromptMessage"
+                      className={
+                        loadingPromptSuccess
+                          ? 'login_prompt_success'
+                          : 'login_prompt_error'
+                      }
+                    >
+                      {loadingPromptMessage}
+                    </p>
+                    <button onClick={closeLoadingPrompt}>Ok</button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {showLoadingOverlay && (
-        <div
-          id="loadingOverlay"
-          className="loading-overlay"
-          style={{ display: 'flex' }}
-        >
-          <div className="loading-box">
-            {showLoadingGraphics && (
-              <div id="loadingGraphics" style={{ display: 'block' }}>
-                <img
-                  src="/src/assets/ethereum.png"
-                  alt="Ethereum Logo"
-                  className="loading-image"
-                />
-                <div className="spinner"></div>
-                <p>
-                  Communicating with BlockChain, please wait... (this may take a
-                  minute)...
-                </p>
-              </div>
-            )}
-            {showLoadingPromptOverlay && (
-              <div id="loadingPromptOverlay" style={{ display: 'block' }}>
-                <img
-                  id="loadingPromptImage"
-                  src={
-                    loadingPromptSuccess
-                      ? '/src/assets/ethereum.png'
-                      : '/src/assets/error icon.png'
-                  }
-                  alt="Prompt"
-                  className="error-image"
-                />
-                <p
-                  id="loadingPromptMessage"
-                  className={
-                    loadingPromptSuccess
-                      ? 'login_prompt_success'
-                      : 'login_prompt_error'
-                  }
-                >
-                  {loadingPromptMessage}
-                </p>
-                <button onClick={closeLoadingPrompt}>Ok</button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {showLoginFaceAuthOverlay && (
-        <div
-          id="loginFaceAuthOverlay"
-          className="loading-overlay"
-          style={{ display: 'flex' }}
-        >
-          <div className="loading-box">
-            <h2>Scan Face for Authentication</h2>
-            <br />
-            <p>Please wait while we scan your face for authentication...</p>
-            <br />
-            <video
-              id="2FA_video"
-              width="320"
-              height="240"
-              autoPlay
-              ref={video2FARef}
-            ></video>
-            <br />
-            <div className="two_factor_capture_container">
-              <canvas
-                id="2FA-capture"
-                width="320"
-                height="240"
-                ref={canvas2FARef}
-              ></canvas>
             </div>
-            <br />
-            <div className="prompt-message-overlay">
-              {twoFAErrorMessage && (
-                <p id="2FAErrorMessage" className="login_prompt_error">
-                  {twoFAErrorMessage}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {showPhotoUploadOverlay && (
-        <div
-          id="photoUploadOverlay"
-          className="loading-overlay"
-          style={{ display: 'flex' }}
-        >
-          <div className="loading-box">
-            <h2>Capture Your Picture</h2>
-            <p>
-              Your face is required for multifactor authentication.
-            </p>
-            <p>
-              Please take three unique photos of yourself. Photos should be
-              clear with good lighting to improve system accuracy.
-            </p>
-            <div className="prompt-message-overlay">
-              {showFaceRecognitionMessage && (
-                <p
-                  id="face_recognition_message"
-                  className={
-                    faceRecognitionSuccess
-                      ? 'face_recognition_message_success'
-                      : 'face_recognition_message_error'
-                  }
-                >
-                  {faceRecognitionMessage}
-                </p>
-              )}
-            </div>
-            {showCaptureContainer && (
-              <div id="capture-container">
+          {showLoginFaceAuthOverlay && (
+            <div
+              id="loginFaceAuthOverlay"
+              className="loading-overlay"
+              style={{ display: 'flex' }}
+            >
+              <div className="loading-box">
+                <h2 id='scanforface-title'>Scan Face for Authentication</h2>
+                <br />
+                <p>Please wait while we scan your face for authentication...</p>
+                <br />
                 <video
-                  id="video"
+                  id="2FA_video"
                   width="320"
                   height="240"
                   autoPlay
-                  ref={videoRef}
+                  ref={video2FARef}
                 ></video>
                 <br />
-                <button onClick={capturePhoto}>Take Photo</button>
-              </div>
-            )}
-            {showPhotoContainer && (
-              <div id="photo-preview">
-                <h3>Preview</h3>
-                <div className="photo-container">
-                <canvas
-                  id="canvas1"
-                  width="320"
-                  height="240"
-                  ref={canvas1Ref}
-                ></canvas>
-                <canvas
-                  id="canvas2"
-                  width="320"
-                  height="240"
-                  ref={canvas2Ref}
-                ></canvas>
-                <canvas
-                  id="canvas3"
-                  width="320"
-                  height="240"
-                  ref={canvas3Ref}
-                ></canvas>
+                <div className="two_factor_capture_container">
+                  <canvas
+                    id="2FA-capture"
+                    width="320"
+                    height="240"
+                    ref={canvas2FARef}
+                  ></canvas>
                 </div>
                 <br />
-                <button onClick={uploadForRecognition}>Upload Photos</button>
+                <div className="prompt-message-overlay">
+                  {twoFAErrorMessage && (
+                    <p id="2FAErrorMessage" className="login_prompt_error">
+                      {twoFAErrorMessage}
+                    </p>
+                  )}
+                </div>
               </div>
-            )}
-            <div
-              id="final-photo-confirmation-container"
-              style={{
-                display: showFinalPhotoConfirmation ? 'block' : 'none',
-              }}
-            >
-              <br />
-              <p>
-                Please check and verify that your face is clear and visible in
-                each photo.
-              </p>
-              <br />
-              <button onClick={resetSignUpPhotos}>Start Over</button>
-              <button onClick={onSignUpClick}>Finish Sign Up</button>
             </div>
-          </div>
-        </div>
-      )}
+          )}
+
+          {showPhotoUploadOverlay && (
+            <div
+              id="photoUploadOverlay"
+              className="loading-overlay"
+              style={{ display: 'flex' }}
+            >
+              <div className="loading-box">
+                <h2 className='loading-box-title'>Capture Your Picture</h2>
+                <p>
+                  Your face is required for multifactor authentication.
+                </p>
+                <p>
+                Please take three unique photos of yourself. 
+                Photos should be clear with good lighting to improve system accuracy.
+               </p>
+                <div className="prompt-message-overlay">
+                  {showFaceRecognitionMessage && (
+                    <p
+                      id="face_recognition_message"
+                      className={
+                        faceRecognitionSuccess
+                          ? 'face_recognition_message_success'
+                          : 'face_recognition_message_error'
+                      }
+                    >
+                      {faceRecognitionMessage}
+                    </p>
+                  )}
+                </div>
+                {showCaptureContainer && (
+                  <div id="capture-container">
+                    <video
+                      id="video"
+                      width="320"
+                      height="240"
+                      autoPlay
+                      ref={videoRef}
+                    ></video>
+                    <br />
+                    <button onClick={capturePhoto}>Take Photo</button>
+                  </div>
+                )}
+                {showPhotoContainer && (
+                  <div id="photo-preview">
+                    <h3 className='Preview-title'>Preview</h3>
+                    <div className="photo-container">
+                    <canvas
+                      id="canvas1"
+                      width="320"
+                      height="240"
+                      ref={canvas1Ref}
+                    ></canvas>
+                    <canvas
+                      id="canvas2"
+                      width="320"
+                      height="240"
+                      ref={canvas2Ref}
+                    ></canvas>
+                    <canvas
+                      id="canvas3"
+                      width="320"
+                      height="240"
+                      ref={canvas3Ref}
+                    ></canvas>
+                    </div>
+                    <br />
+                    <button id='uploadphoto-btn' onClick={uploadForRecognition}>Upload Photos</button>
+                  </div>
+                )}
+                <div
+                  id="final-photo-confirmation-container"
+                  style={{
+                    display: showFinalPhotoConfirmation ? 'block' : 'none',
+                  }}
+                >
+                  <br />
+                  <p>
+                    Please check and verify that your face is clear and visible in
+                    each photo.
+                  </p>
+                  <br />
+                  <div className="capture-confirmation-buttons">
+                    <button onClick={resetSignUpPhotos}>Start Over</button>
+                    <button onClick={onSignUpClick}>Finish Sign Up</button>
+                  </div>
+                </div>
+              </div>
+            </div>)}
+        </div>  
     </>
   );
 };
