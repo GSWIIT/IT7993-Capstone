@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\Users\\steven.karakostas\\Desktop\\GITHUB SUCKS\\IT7993-Capstone\\BlockChain\\contracts\\FaceGuard.sol": {
-      "lastModificationDate": 1741038463167,
-      "contentHash": "d5fc3a40a0913b9d62639bfcd8578008",
+      "lastModificationDate": 1741141336381,
+      "contentHash": "e84e4d470c31c22268de63d601803c01",
       "sourceName": "contracts/FaceGuard.sol",
       "solcConfig": {
         "version": "0.8.0",

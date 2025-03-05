@@ -6,8 +6,10 @@ contract FaceGuard {
         string username;
         string passwordHash;
         string[] faceHashes;
-        string[] permissions;
-        string applicationKey;
+        string[] groups;
+        string accountCreationDate;
+        string lastEditDate;
+        bool faceReenrollmentRequired;
         bool enabled;
     }
 
@@ -19,10 +21,11 @@ contract FaceGuard {
 
     mapping(string => User) private users;
     mapping(string => Group) private groups;
+    string[] private allUsernames; // Array to store all created users
 
     address private owner;
 
-    event UserRegistered(string username, string applicationKey);
+    event UserRegistered(string username);
     event PasswordUpdated(string username);
     event FaceHashUpdated(string username);
     event PermissionsUpdated(string username);
@@ -38,15 +41,26 @@ contract FaceGuard {
 
     constructor() {
         owner = msg.sender;
+
+        groups["Owners"] = Group("Owners", new string[](0), new string[](0));
+        emit GroupCreated("Owners");
+        groups["Users"] = Group("Users", new string[](0), new string[](0));
+        emit GroupCreated("Users");
     }
 
-    function registerUser(string memory username, string memory passwordHash, string[] memory initialFaceHashes, string memory applicationKey) public onlyOwner {
-        users[username] = User(username, passwordHash, initialFaceHashes, new string[](0), applicationKey, true);
-        emit UserRegistered(username, applicationKey);
+    function registerUser(string memory username, string memory passwordHash, string[] memory initialFaceHashes, string memory creationDate) public onlyOwner {
+        users[username] = User(username, passwordHash, initialFaceHashes, new string[](0), creationDate, creationDate, false, true);
+        allUsernames.push(username);
+        addUserToGroup(username, "Users")
+        emit UserRegistered(username);
     }
 
     function getUserFaceHashes(string memory username) public view returns (string[] memory) {
         return users[username].faceHashes;
+    }
+
+    function getAllUsernames() public view returns (string[] memory) {
+        return allUsernames;
     }
 
     function updateUserPassword(string memory username, string memory newPasswordHash) public onlyOwner {
@@ -59,11 +73,6 @@ contract FaceGuard {
         emit FaceHashUpdated(username);
     }
 
-    function editUserPermissions(string memory username, string[] memory newPermissions) public onlyOwner {
-        users[username].permissions = newPermissions;
-        emit PermissionsUpdated(username);
-    }
-
     function toggleUser(string memory username) public onlyOwner {
         users[username].enabled = !users[username].enabled;
         emit UserToggled(username, users[username].enabled);
@@ -74,9 +83,9 @@ contract FaceGuard {
         return bytes(users[username].username).length > 0;
     }
 
-    function getUser(string memory username) public view returns (string memory, string memory, string[] memory, string[] memory, string memory, bool) {
+    function getUser(string memory username) public view returns (string memory, string memory, string[] memory, string[] memory, string memory, string memory, bool, bool) {
         User memory user = users[username];
-        return (user.username, user.passwordHash, user.faceHashes, user.permissions, user.applicationKey, user.enabled);
+        return (user.username, user.passwordHash, user.faceHashes, user.groups, user.accountCreationDate, user.lastEditDate, user.faceReenrollmentRequired, user.enabled);
     }
 
     // Group management functions

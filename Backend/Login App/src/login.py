@@ -15,20 +15,18 @@ import face_recognition
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from datasketch import MinHash
-import pickle
 import hashlib
 from collections import Counter
-from session import create_session, destroy_session, get_session
+from functools import wraps
 
 login_bp = Blueprint('login', __name__, template_folder='templates')
 
 # Load OpenCV's pre-trained face detection model
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-face_hash_secret_key = "Anthony123!!!!!!".encode() #for testing only
 
 # Configurations
 ALCHEMY_API_URL = "https://eth-sepolia.g.alchemy.com/v2/Dv7X6LhBni2gxlcUzAPs51cKqdUHK-8Y"
-CONTRACT_ADDRESS = "0xC8C34F83d6B15a9d3043B6A5a9b2E79926b2A94E"
+CONTRACT_ADDRESS = "0xbe27997a7d178235f54cB499A459D3c6978F745E"
 PRIVATE_KEY = "9ea2167fb16f55f70f2afca8644f9903b8f05f45c6268cf5c435b5df777c82a5"  # Owner's private key, need to delete later
 #need to set up dotenv
 #PRIVATE_KEY = os.getenv("PRIVATE_KEY")  # Owner's private key
@@ -98,18 +96,6 @@ def hamming_distance(hash1, hash2):
     # Count differing bits
     return sum(c1 != c2 for c1, c2 in zip(bin1, bin2))
 
-def compare_face_hashes(new_encoding, stored_hash):
-    """ Compare hashes using Hamming Distance """
-    new_hash = hash_face_encoding(new_encoding)  # Generate new hash
-
-    # Compute Hamming Distance
-    distance = hamming_distance(new_hash, stored_hash)
-
-    print("Distance between hashes: " + str(distance))
-
-    # Set threshold (adjust based on testing)
-    return distance < 10  # Lower value means closer match
-
 @login_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == "GET":
@@ -168,7 +154,7 @@ def check_face_for_2FA():
                 return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
 
     #finally, compare euclidean distance of three detected faces for similarity comparison.
-    hamming_distance_limit = 4
+    hamming_distance_limit = 6
 
     for frameIndex, frameToScan in enumerate(frames):
         #need to make sure frame is not empty before trying to scan it
@@ -188,8 +174,9 @@ def check_face_for_2FA():
                 if results <= hamming_distance_limit:
                     print("Hamming distance below limit. Returning success...")
                     temporary_user_storage.pop()
-                    session_data = create_session(user_obj[0]) #create a session for the user.
-                    return jsonify({"success": True, "reason": "Face verified successfully. Login successful!", "session": session_data})
+                    session.clear()
+                    session["username"] = username
+                    return jsonify({"success": True, "reason": "Face verified successfully. Login successful!"})
     
     temporary_user_storage.pop()
     return jsonify({"success": False, "reason": "User's face not detected."})
@@ -421,3 +408,31 @@ def run_face_recognition():
             face_recognition_output_images_only.append({"image": result.get("image")})
         
     return jsonify({"success": True, "reason": "OpenCV ran successfully and detected a face in all three photos.", "output": face_recognition_output_images_only})
+
+@login_bp.route('/check-session', methods=['GET'])
+def get_session():
+    print("session data:", session)
+    if "username" in session:
+        return jsonify({
+            "logged_in": True,
+            "username": session["username"]
+        })
+    else:
+        return jsonify({"logged_in": False})
+
+@login_bp.route('/logoff-session', methods=['GET'])
+def destroy_session():
+    """Logs out the user and destroys session."""
+    session.clear()
+    return jsonify({"success": True})
+
+#this decorator can be placed over Flask routes to protect them
+#it will ensure that a proper login session is available before running a route!
+def login_required(f):
+    """Decorator to protect routes that require login."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "username" not in session:
+            return jsonify({"error": "Unauthorized"}), 401  # 🔹 Return 401 if no session
+        return f(*args, **kwargs)  # 🔹 Proceed if user is authenticated
+    return decorated_function

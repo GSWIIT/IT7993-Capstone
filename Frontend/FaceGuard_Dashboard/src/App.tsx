@@ -7,6 +7,7 @@ import Login from './Login/login';
 //import Message from "./test_react/test"; 
 import Home from "./Home/home"; 
 import Account from "./Account/account";
+import Permissions from "./Permissions/permissions";
 function App() {
   return (
     <Router>
@@ -14,6 +15,7 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/home" element={<Home />} />
         <Route path="/account" element={<Account />} />
+        <Route path="/permissions" element={<Permissions />} />
       </Routes>
     </Router>
   );

@@ -1,13 +1,41 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./account.css";
 import backgroundvideo from "../assets/backgroundvideo.mp4";
 import { Link } from "react-router-dom";
 
 const home: React.FC = () => {
+  const navigator = useNavigate()
+
+  const checkSession = async () => {
+    fetch('http://127.0.0.1:5000/auth/check-session', {
+      method: 'GET',
+      credentials: "include"
+    })
+    .then((response) => response.json())
+    .then((result) => {
+      if(result.logged_in == false)
+      {
+        console.log("No login session detected!")
+        navigator("/")
+      }
+      else
+      {
+        console.log("Session: ", result)
+      }
+    })
+  };
   
   const onLogOutClick = () => {
     console.log("Logging out...");
-    // Add logout logic here
+    fetch('http://127.0.0.1:5000/auth/logoff-session', {
+      method: 'GET',
+      credentials: "include"
+    })
+      .then((response) => response.json())
+      .then(() => {
+        navigator("/")
+      })
   };
 
   const handleScrollToSection = (id: string) => {
@@ -18,6 +46,7 @@ const home: React.FC = () => {
   };
 
   useEffect(() => {
+    checkSession();
     handleScrollToSection("profile");
   }, []);
 
@@ -48,7 +77,7 @@ const home: React.FC = () => {
           className="Groups"
         //  onClick={() => handleNavigation("Posts")}
         >
-          Group
+          Groups & Permissions
         </a>
         <a
           className="About"
