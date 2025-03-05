@@ -9,7 +9,7 @@ permissions_bp = Blueprint('permissions', __name__, template_folder='templates')
 
 # Configurations
 ALCHEMY_API_URL = "https://eth-sepolia.g.alchemy.com/v2/Dv7X6LhBni2gxlcUzAPs51cKqdUHK-8Y"
-CONTRACT_ADDRESS = "0x22b9f47D3B8D520e2f7601Ec66b4a6bb358C56C1"
+CONTRACT_ADDRESS = "0xB5B07411C1aD4e6200A11677664C99529d49f99d"
 PRIVATE_KEY = "9ea2167fb16f55f70f2afca8644f9903b8f05f45c6268cf5c435b5df777c82a5"  # Owner's private key, need to delete later
 #need to set up dotenv
 #PRIVATE_KEY = os.getenv("PRIVATE_KEY")  # Owner's private key
@@ -43,7 +43,7 @@ w3.eth.default_account = owner_address
 #protected with login_required decorator function
 @permissions_bp.route('/get-users', methods=['GET'])
 @login_required
-def get_all_users():
+def get_all_groups():
     usernames = contract.functions.getAllUsernames().call()
 
     all_users_array = []
@@ -58,12 +58,31 @@ def get_all_users():
         all_users_array.append({
             "username": user[0], 
             "faceHashes": face_hashes_exist,
-            "assignedGroups": user[3],
-            "accountCreationDate": user[4],
-            "lastEditDate": user[5],
-            "faceReenrollmentRequired": user[6],
-            "enabled": user[7]
+            "accountCreationDate": user[3],
+            "lastEditDate": user[4],
+            "faceReenrollmentRequired": user[5],
+            "enabled": user[6]
         })
 
 
     return jsonify({"success": True, "reason": "Testing successful.", "array": all_users_array})
+
+#protected with login_required decorator function
+@permissions_bp.route('/get-groups', methods=['GET'])
+@login_required
+def get_all_users():
+    groupNames = contract.functions.getAllGroups().call()
+
+    all_groups_array = []
+
+    for group in groupNames:
+        group_obj = contract.functions.getGroup(group).call()
+
+        all_groups_array.append({
+            "name": group_obj[0], 
+            "permissions": group_obj[1],
+            "members": group_obj[2]
+        })
+
+
+    return jsonify({"success": True, "reason": "Testing successful.", "array": all_groups_array})

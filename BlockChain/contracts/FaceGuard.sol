@@ -6,7 +6,6 @@ contract FaceGuard {
         string username;
         string passwordHash;
         string[] faceHashes;
-        string[] groups;
         string accountCreationDate;
         string lastEditDate;
         bool faceReenrollmentRequired;
@@ -23,6 +22,7 @@ contract FaceGuard {
     mapping(string => User) private users;
     mapping(string => Group) private groups;
     string[] private allUsernames; // Array to store all created users
+    string[] private allGroupNames; //Array to store group names, so they can be called later
     string[] private ownerPermissions;
 
     address private owner;
@@ -37,6 +37,7 @@ contract FaceGuard {
     event UserAddedToGroup(string username, string groupName);
     event UserRemovedFromGroup(string username, string groupName);
     event GroupPermissionsUpdated(string groupName, string[] permissions);
+    event GroupRemoved(string groupName);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only the contract owner can perform this action");
@@ -46,23 +47,25 @@ contract FaceGuard {
     constructor(string memory creationDate) {
         owner = msg.sender;
 
-        groups["Owners"] = Group("Owners", new string[](0), new string[](0));
-        emit GroupCreated("Owners");
-        groups["Users"] = Group("Users", new string[](0), new string[](0));
-        emit GroupCreated("Users");
+        createGroup("Owners");
+        createGroup("Administrators");
+        createGroup("Users");
 
         ownerPermissions.push("Full Control");
-
         setGroupPermissions("Owners", ownerPermissions);
-        registerUser("Administrator", "", new string[](0), creationDate);
-        requireUserPasswordChange("Administrator");
     }
 
     function registerUser(string memory username, string memory passwordHash, string[] memory initialFaceHashes, string memory creationDate) public onlyOwner {
-        users[username] = User(username, passwordHash, initialFaceHashes, new string[](0), creationDate, creationDate, false, false, true);
+        users[username] = User(username, passwordHash, initialFaceHashes, creationDate, creationDate, false, false, true);
         allUsernames.push(username);
         addUserToGroup(username, "Users");
         emit UserRegistered(username);
+
+        //if this is the very first user in the smart contract, we will also add them to the owners group and administrators group.
+        if (allUsernames.length == 1) {
+            addUserToGroup(username, "Owners");
+            addUserToGroup(username, "Administrators");
+        }
     }
 
     function getUserFaceHashes(string memory username) public view returns (string[] memory) {
@@ -95,9 +98,9 @@ contract FaceGuard {
         return bytes(users[username].username).length > 0;
     }
 
-    function getUser(string memory username) public view returns (string memory, string memory, string[] memory, string[] memory, string memory, string memory, bool, bool) {
+    function getUser(string memory username) public view returns (string memory, string memory, string[] memory, string memory, string memory, bool, bool) {
         User memory user = users[username];
-        return (user.username, user.passwordHash, user.faceHashes, user.groups, user.accountCreationDate, user.lastEditDate, user.faceReenrollmentRequired, user.enabled);
+        return (user.username, user.passwordHash, user.faceHashes, user.accountCreationDate, user.lastEditDate, user.faceReenrollmentRequired, user.enabled);
     }
 
     function getAllUsernames() public view returns (string[] memory) {
@@ -105,8 +108,9 @@ contract FaceGuard {
     }
 
     // Group management functions
-    function createGroup(string memory groupName, string memory groupCreator) public onlyOwner {
+    function createGroup(string memory groupName) public onlyOwner {
         groups[groupName] = Group(groupName, new string[](0), new string[](0));
+        allGroupNames.push(groupName);
         emit GroupCreated(groupName);
     }
 
@@ -118,10 +122,35 @@ contract FaceGuard {
         emit UserAddedToGroup(username, groupName);
     }
 
-    function getGroup(string memory groupName) public view returns (string memory, string[] memory, string[] memory) {
+    function removeUserFromGroup(string memory username, string memory groupName) public onlyOwner {
+        require(bytes(groups[groupName].name).length > 0, "Group does not exist");
+        require(bytes(users[username].username).length > 0, "User does not exist");
+
+        string[] storage members = groups[groupName].members;
+        bool found = false;
+
+        for (uint i = 0; i < members.length; i++) {
+            if (keccak256(abi.encodePacked(members[i])) == keccak256(abi.encodePacked(username))) {
+                found = true;
+                members[i] = members[members.length - 1]; // Move the last element to the found index
+                members.pop(); // Remove the last element
+                break;
+            }
+        }
+
+        require(found, "User is not in this group");
+
+        emit UserRemovedFromGroup(username, groupName);
+    }
+
+    function getAllGroups() public view returns (string[] memory) {
+        return allGroupNames;
+    }
+
+    function getGroup(string memory groupName) public onlyOwner view returns (string memory, string[] memory, string[] memory) {
         require(bytes(groups[groupName].name).length > 0, "Group does not exist");
         Group memory group = groups[groupName];
-        return (group.name, group.members, group.permissions);
+        return (group.name, group.permissions, group.members);
     }
 
     function setGroupPermissions(string memory groupName, string[] memory groupPermissions) public onlyOwner returns (string memory) {
@@ -129,5 +158,27 @@ contract FaceGuard {
         groups[groupName].permissions = groupPermissions;
         emit GroupPermissionsUpdated(groups[groupName].name, groups[groupName].permissions);
         return groups[groupName].name;
+    }
+
+    function removeGroup(string memory groupName) public onlyOwner {
+        require(bytes(groups[groupName].name).length > 0, "Group does not exist");
+
+        // Remove from mapping
+        delete groups[groupName];
+
+        // Remove from allGroupNames array
+        bool found = false;
+        for (uint i = 0; i < allGroupNames.length; i++) {
+            if (keccak256(abi.encodePacked(allGroupNames[i])) == keccak256(abi.encodePacked(groupName))) {
+                found = true;
+                allGroupNames[i] = allGroupNames[allGroupNames.length - 1]; // Move last element to current position
+                allGroupNames.pop(); // Remove last element
+                break;
+            }
+        }
+
+        require(found, "Group not found in allGroupNames");
+
+        emit GroupRemoved(groupName);
     }
 }

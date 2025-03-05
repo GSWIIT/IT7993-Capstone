@@ -3,10 +3,9 @@ import { useNavigate } from "react-router-dom";
 import "./permissions.css"
 import { stringify } from "postcss";
 interface Group {
-  id: string;
   name: string;
   permissions: string;
-  userCount: number;
+  members: string[];
 }
 
 interface User {
@@ -26,11 +25,7 @@ const Permissions: React.FC = () => {
 
   const [users, setUsers] = useState<User[]>([]);
 
-  const [groups, setGroups] = useState<Group[]>([
-    { id: "123e4567-e89b-12d3-a456-426614174000", name: "Admin Group", permissions: "Read, Write, Execute", userCount: 5 },
-    { id: "987f6543-b21a-98c7-d654-789012345678", name: "User Group", permissions: "Read, Execute", userCount: 10 },
-    { id: "555a444b-c333-d222-e111-000999888777", name: "Guest Group", permissions: "Read Only", userCount: 3 },
-  ]);
+  const [groups, setGroups] = useState<Group[]>([]);
 
   const checkSession = async () => {
     fetch('http://127.0.0.1:5000/auth/check-session', {
@@ -66,9 +61,25 @@ const Permissions: React.FC = () => {
       });
   })
 
+  const getGroups = (() => {
+    fetch('http://127.0.0.1:5000/permissions/get-groups', {
+      method: 'GET',
+      credentials: "include"
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        console.log(result);
+        if (result.success) 
+        {
+          setGroups(result.array)
+        }
+      });
+  })
+
   useEffect(() => {
     checkSession();
-    getUsers();    
+    getUsers();
+    getGroups();
   }, []);
 
   return (
@@ -88,7 +99,6 @@ const Permissions: React.FC = () => {
                 <th>Face Re-Enrollment Required</th>
                 <th>Account Creation Date</th>
                 <th>Last Edit Date</th>
-                <th>Assigned Groups</th>
                 <th>Enabled</th>
               </tr>
             </thead>
@@ -100,7 +110,6 @@ const Permissions: React.FC = () => {
                   <td>{`${user.faceReenrollmentRequired}`}</td>
                   <td>{user.accountCreationDate}</td>
                   <td>{user.lastEditDate}</td>
-                  <td>{user.assignedGroups}</td>
                   <td>{`${user.enabled}`}</td>
                 </tr>
               ))}
@@ -115,22 +124,18 @@ const Permissions: React.FC = () => {
               <tr>
                 <th>Name</th>
                 <th>Permissions</th>
-                <th># of Users</th>
-                <th>View GUID</th>
+                <th>Users</th>
                 <th>Edit</th>
               </tr>
             </thead>
             <tbody>
               {groups.map((group) => (
-                <tr key={group.id}>
+                <tr key={group.name}>
                   <td>{group.name}</td>
                   <td>{group.permissions}</td>
-                  <td>{group.userCount}</td>
+                  <td>{group.members}</td>
                   <td>
-                    <button className="permissions-view-button" onClick={() => alert(`GUID: ${group.id}`)}>View GUID</button>
-                  </td>
-                  <td>
-                    <button className="permissions-edit-button" onClick={() => alert(`Edit group with GUID: ${group.id}`)}>Edit</button>
+                    <button className="permissions-edit-button" onClick={() => alert(`Edit group with GUID: ${group.name}`)}>Edit</button>
                   </td>
                 </tr>
               ))}

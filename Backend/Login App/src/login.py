@@ -12,12 +12,8 @@ import imagehash
 from imagehash import dhash
 import io
 import face_recognition
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
-from datasketch import MinHash
-import hashlib
-from collections import Counter
 from functools import wraps
+from datetime import datetime
 
 login_bp = Blueprint('login', __name__, template_folder='templates')
 
@@ -26,12 +22,12 @@ face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_fronta
 
 # Configurations
 ALCHEMY_API_URL = "https://eth-sepolia.g.alchemy.com/v2/Dv7X6LhBni2gxlcUzAPs51cKqdUHK-8Y"
-CONTRACT_ADDRESS = "0x22b9f47D3B8D520e2f7601Ec66b4a6bb358C56C1"
+CONTRACT_ADDRESS = "0xB5B07411C1aD4e6200A11677664C99529d49f99d"
 PRIVATE_KEY = "9ea2167fb16f55f70f2afca8644f9903b8f05f45c6268cf5c435b5df777c82a5"  # Owner's private key, need to delete later
 #need to set up dotenv
 #PRIVATE_KEY = os.getenv("PRIVATE_KEY")  # Owner's private key
 
-abi_file_path = os.path.abspath("../../BlockChain/artifacts/contracts/FaceGuard.sol/FaceGuard.json")
+abi_file_path = os.path.abspath("./BlockChain/artifacts/contracts/FaceGuard.sol/FaceGuard.json")
 print(f"Loading ABI from: {abi_file_path}")
 
 with open(abi_file_path, "r") as f:
@@ -236,9 +232,13 @@ def signup():
     max_priority_fee = w3.to_wei("2", "gwei")  # Priority fee (adjust based on congestion)
     max_fee_per_gas = gas_price + max_priority_fee
 
+    #get the current date in YYYY_MM_DD format, used for creation date of account
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    current_date = str(current_date)
+
     #register user (use estimated gas & add an extra 50000 buffer to make sure transaction goes through)
     tx = contract.functions.registerUser(
-        username, password, face_hash_array, "testing_GUID"
+        username, password, face_hash_array, current_date
     ).build_transaction({
         "from": owner_address,
         "nonce": w3.eth.get_transaction_count(owner_address),
