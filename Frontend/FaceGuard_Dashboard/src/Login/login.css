@@ -252,7 +252,7 @@
     min-height: 100%;
     width: auto;
     height: auto;
-    transform: translate(-50%, -50%) scale(1.8); /* Zoom in the video */
+    transform: translate(-50%, -50%); 
     object-fit: cover;
-    z-index: -1; /* Ensure the video is behind other content */
+    z-index: -1; 
 }
