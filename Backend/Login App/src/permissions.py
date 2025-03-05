@@ -9,7 +9,7 @@ permissions_bp = Blueprint('permissions', __name__, template_folder='templates')
 
 # Configurations
 ALCHEMY_API_URL = "https://eth-sepolia.g.alchemy.com/v2/Dv7X6LhBni2gxlcUzAPs51cKqdUHK-8Y"
-CONTRACT_ADDRESS = "0xB5B07411C1aD4e6200A11677664C99529d49f99d"
+CONTRACT_ADDRESS = "0xadB98376691e47b3F4A432fA76f681AFBe9e9817"
 PRIVATE_KEY = "9ea2167fb16f55f70f2afca8644f9903b8f05f45c6268cf5c435b5df777c82a5"  # Owner's private key, need to delete later
 #need to set up dotenv
 #PRIVATE_KEY = os.getenv("PRIVATE_KEY")  # Owner's private key
@@ -86,3 +86,13 @@ def get_all_users():
 
 
     return jsonify({"success": True, "reason": "Testing successful.", "array": all_groups_array})
+
+#protected with login_required decorator function
+@permissions_bp.route('/get-user-permissions', methods=['GET'])
+@login_required
+def get_user_permissions():
+    permissions = contract.functions.getUserPermissions(session["username"]).call()
+
+    print(permissions)
+
+    return jsonify({"success": True, "reason": "Testing successful.", "array": permissions})

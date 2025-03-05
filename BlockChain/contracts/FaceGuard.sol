@@ -23,7 +23,8 @@ contract FaceGuard {
     mapping(string => Group) private groups;
     string[] private allUsernames; // Array to store all created users
     string[] private allGroupNames; //Array to store group names, so they can be called later
-    string[] private ownerPermissions;
+    string[] private adminPermissions;
+    string[] private userPermissions;
 
     address private owner;
 
@@ -44,15 +45,26 @@ contract FaceGuard {
         _;
     }
 
-    constructor(string memory creationDate) {
+    constructor() {
         owner = msg.sender;
 
-        createGroup("Owners");
         createGroup("Administrators");
         createGroup("Users");
 
-        ownerPermissions.push("Full Control");
-        setGroupPermissions("Owners", ownerPermissions);
+        //construct admin permissions here
+        adminPermissions.push("Create All");
+        adminPermissions.push("Read All Users");
+        adminPermissions.push("Read All Groups");
+        adminPermissions.push("Update All");
+        adminPermissions.push("Delete All");
+
+        //construct user permissions here
+        userPermissions.push("Read Self Only");
+        userPermissions.push("Read Self Groups Only");
+        userPermissions.push("Update Self Only");
+
+        setGroupPermissions("Administrators", adminPermissions);
+        setGroupPermissions("Users", userPermissions);
     }
 
     function registerUser(string memory username, string memory passwordHash, string[] memory initialFaceHashes, string memory creationDate) public onlyOwner {
@@ -61,9 +73,8 @@ contract FaceGuard {
         addUserToGroup(username, "Users");
         emit UserRegistered(username);
 
-        //if this is the very first user in the smart contract, we will also add them to the owners group and administrators group.
+        //if this is the very first user in the smart contract, we will also add them to the administrators group.
         if (allUsernames.length == 1) {
-            addUserToGroup(username, "Owners");
             addUserToGroup(username, "Administrators");
         }
     }
@@ -141,6 +152,54 @@ contract FaceGuard {
         require(found, "User is not in this group");
 
         emit UserRemovedFromGroup(username, groupName);
+    }
+
+    function getUserPermissions(string memory username) public view returns (string[] memory) {
+        require(bytes(users[username].username).length > 0, "User does not exist");
+        
+        string[] memory userGroups = new string[](allGroupNames.length);
+        uint groupCount = 0;
+        
+        // Identify groups the user belongs to
+        for (uint i = 0; i < allGroupNames.length; i++) {
+            Group storage group = groups[allGroupNames[i]];
+            for (uint j = 0; j < group.members.length; j++) {
+                if (keccak256(abi.encodePacked(group.members[j])) == keccak256(abi.encodePacked(username))) {
+                    userGroups[groupCount] = group.name;
+                    groupCount++;
+                    break;
+                }
+            }
+        }
+
+        string[] memory userPermissionsList = new string[](50); // Arbitrary size, can be optimized
+        uint permissionCount = 0;
+        
+        // Aggregate permissions from groups
+        for (uint i = 0; i < groupCount; i++) {
+            string memory groupName = userGroups[i];
+            string[] storage permissions = groups[groupName].permissions;
+            for (uint j = 0; j < permissions.length; j++) {
+                bool exists = false;
+                for (uint k = 0; k < permissionCount; k++) {
+                    if (keccak256(abi.encodePacked(userPermissionsList[k])) == keccak256(abi.encodePacked(permissions[j]))) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    userPermissionsList[permissionCount] = permissions[j];
+                    permissionCount++;
+                }
+            }
+        }
+
+        string[] memory finalPermissions = new string[](permissionCount);
+        for (uint i = 0; i < permissionCount; i++) {
+            finalPermissions[i] = userPermissionsList[i];
+        }
+
+        return finalPermissions;
     }
 
     function getAllGroups() public view returns (string[] memory) {

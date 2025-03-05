@@ -27,6 +27,8 @@ const Permissions: React.FC = () => {
 
   const [groups, setGroups] = useState<Group[]>([]);
 
+  const [userPermissions, setPermissions] = useState<string>();
+
   const checkSession = async () => {
     fetch('http://127.0.0.1:5000/auth/check-session', {
       method: 'GET',
@@ -76,10 +78,39 @@ const Permissions: React.FC = () => {
       });
   })
 
+  const getPermissions = (() => {
+    fetch('http://127.0.0.1:5000/permissions/get-user-permissions', {
+      method: 'GET',
+      credentials: "include"
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        console.log(result);
+        if (result.success) 
+        {
+          let permissionsString = ""
+          for (let i = 0; i < result.array.length; i++)
+          {
+            permissionsString += result.array[i];
+            if(i < result.array.length - 1)
+            {
+              permissionsString += ", "
+            }
+            else
+            {
+              permissionsString += "."
+            }
+          }
+          setPermissions(permissionsString)
+        }
+      });
+  })
+
   useEffect(() => {
     checkSession();
     getUsers();
     getGroups();
+    getPermissions();
   }, []);
 
   return (
@@ -91,6 +122,11 @@ const Permissions: React.FC = () => {
       
       {activeTab === 'users' ? (
         <div className="permissions-table-container">
+          <div>
+            <h2>Your User(s)</h2>
+            <p>Note: Your permission level impacts this view!</p>
+            <p>Your Current Permissions: {userPermissions}</p>
+          </div>
           <table>
             <thead>
               <tr>
@@ -118,6 +154,10 @@ const Permissions: React.FC = () => {
         </div>
       ) : (
         <div className="permissions-table-container">
+          <div>
+            <h2>Your Group(s)</h2>
+            <p>Note: Your permission level impacts this view!</p>
+          </div>
           <button className="permissions-create-button">Create A Group</button>
           <table>
             <thead>
@@ -125,7 +165,7 @@ const Permissions: React.FC = () => {
                 <th>Name</th>
                 <th>Permissions</th>
                 <th>Users</th>
-                <th>Edit</th>
+                <th>Edit Group</th>
               </tr>
             </thead>
             <tbody>
