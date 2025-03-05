@@ -10,6 +10,7 @@ contract FaceGuard {
         string accountCreationDate;
         string lastEditDate;
         bool faceReenrollmentRequired;
+        bool passwordChangeRequired;
         bool enabled;
     }
 
@@ -22,36 +23,45 @@ contract FaceGuard {
     mapping(string => User) private users;
     mapping(string => Group) private groups;
     string[] private allUsernames; // Array to store all created users
+    string[] private ownerPermissions;
 
     address private owner;
 
     event UserRegistered(string username);
     event PasswordUpdated(string username);
+    event PasswordChangeRequired(string username);
     event FaceHashUpdated(string username);
     event PermissionsUpdated(string username);
     event UserToggled(string username, bool enabled);
     event GroupCreated(string groupName);
     event UserAddedToGroup(string username, string groupName);
     event UserRemovedFromGroup(string username, string groupName);
+    event GroupPermissionsUpdated(string groupName, string[] permissions);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only the contract owner can perform this action");
         _;
     }
 
-    constructor() {
+    constructor(string memory creationDate) {
         owner = msg.sender;
 
         groups["Owners"] = Group("Owners", new string[](0), new string[](0));
         emit GroupCreated("Owners");
         groups["Users"] = Group("Users", new string[](0), new string[](0));
         emit GroupCreated("Users");
+
+        ownerPermissions.push("Full Control");
+
+        setGroupPermissions("Owners", ownerPermissions);
+        registerUser("Administrator", "", new string[](0), creationDate);
+        requireUserPasswordChange("Administrator");
     }
 
     function registerUser(string memory username, string memory passwordHash, string[] memory initialFaceHashes, string memory creationDate) public onlyOwner {
-        users[username] = User(username, passwordHash, initialFaceHashes, new string[](0), creationDate, creationDate, false, true);
+        users[username] = User(username, passwordHash, initialFaceHashes, new string[](0), creationDate, creationDate, false, false, true);
         allUsernames.push(username);
-        addUserToGroup(username, "Users")
+        addUserToGroup(username, "Users");
         emit UserRegistered(username);
     }
 
@@ -59,12 +69,9 @@ contract FaceGuard {
         return users[username].faceHashes;
     }
 
-    function getAllUsernames() public view returns (string[] memory) {
-        return allUsernames;
-    }
-
     function updateUserPassword(string memory username, string memory newPasswordHash) public onlyOwner {
         users[username].passwordHash = newPasswordHash;
+        users[username].passwordChangeRequired = false;
         emit PasswordUpdated(username);
     }
 
@@ -78,6 +85,11 @@ contract FaceGuard {
         emit UserToggled(username, users[username].enabled);
     }
 
+    function requireUserPasswordChange(string memory username) public onlyOwner {
+        users[username].passwordChangeRequired = true;
+        emit PasswordChangeRequired(username);
+    }
+
     function checkIfUserExists(string memory username) public view returns (bool) {
         //if a username returns that is longer than 0 characters, it returns true. Usernames of 0 chars means it does not exist, so it would be false.
         return bytes(users[username].username).length > 0;
@@ -86,6 +98,10 @@ contract FaceGuard {
     function getUser(string memory username) public view returns (string memory, string memory, string[] memory, string[] memory, string memory, string memory, bool, bool) {
         User memory user = users[username];
         return (user.username, user.passwordHash, user.faceHashes, user.groups, user.accountCreationDate, user.lastEditDate, user.faceReenrollmentRequired, user.enabled);
+    }
+
+    function getAllUsernames() public view returns (string[] memory) {
+        return allUsernames;
     }
 
     // Group management functions
@@ -106,5 +122,12 @@ contract FaceGuard {
         require(bytes(groups[groupName].name).length > 0, "Group does not exist");
         Group memory group = groups[groupName];
         return (group.name, group.members, group.permissions);
+    }
+
+    function setGroupPermissions(string memory groupName, string[] memory groupPermissions) public onlyOwner returns (string memory) {
+        require(bytes(groups[groupName].name).length > 0, "Group does not exist");
+        groups[groupName].permissions = groupPermissions;
+        emit GroupPermissionsUpdated(groups[groupName].name, groups[groupName].permissions);
+        return groups[groupName].name;
     }
 }

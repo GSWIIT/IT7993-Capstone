@@ -1,0 +1,197 @@
+
+/* You can add global styles to this file, and also import other style files */
+
+.small_padding {
+    padding: 10px;
+}
+
+.medium_padding {
+    padding: 20px;
+}
+
+.large_padding {
+    padding: 30px;
+}
+
+.underlined {
+    text-decoration: underline;
+}
+
+.login_signup_container {
+    box-sizing: border-box;
+    display: flex;
+	align-items: center;
+    justify-content: center;
+    padding: 10px;
+    width: 800px;
+    min-height: 100vh;
+    margin: auto;
+}
+
+.login_signup_column_left {
+    width: 50%;
+    text-align: center;
+    /*border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;*/
+    background: white;
+    border-right: 1px solid black;
+    border-left: 2px solid black;
+    border-top: 2px solid black;
+    border-bottom: 2px solid black;
+}
+
+.login_signup_column_right {
+    width: 50%;
+    text-align: center;
+    /*border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;*/
+    background: green;
+    border-left: 1px solid black;
+    border-right: 2px solid black;
+    border-top: 2px solid black;
+    border-bottom: 2px solid black;
+}
+
+.login_signup_center_left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 350px;
+    padding: 30px;
+}
+
+.login_signup_center_right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 350px;
+    padding: 30px;
+}
+
+::placeholder {
+    color: rgb(0,0,0);
+    font-style: italic;
+}
+
+.white_text {
+    color: white;
+}
+
+.white_outline:focus {
+    outline: 2px solid white;
+}
+
+.error_message {
+    color: red;
+    background-color: pink;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+/* Loading overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* Loading box */
+.loading-box {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Loading image */
+.loading-image {
+    width: 100px;  /* Adjust size as needed */
+    height: 100px;
+    margin: 10px;
+}
+
+.error-image {
+    width: 50px;  /* Adjust size as needed */
+    height: 50px;
+    margin: 5px;
+}
+
+.login_prompt_error {
+    color: red;
+    background-color: pink;
+    padding: 10px;
+    margin: 10px;
+    border: 2px solid red;
+    border-radius: 5px;
+    inline-size: 300px;
+    text-align: center;
+}
+
+.login_prompt_success {
+    color: green;
+    background-color: lightgreen;
+    padding: 10px;
+    margin: 10px;
+    border: 2px solid green;
+    border-radius: 5px;
+    inline-size: 300px;
+    text-align: center;
+    display: block;
+}
+
+/* Spinner animation */
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 5px solid rgba(0, 0, 0, 0.1);
+    border-top: 5px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 10px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+#capture-container{
+    display: block;
+    align-items: center;
+}
+#video{
+    display: block;
+    margin: auto;
+    width: 320px;
+    height: 240px;
+}
+#photo-container {
+    display: flex;
+    flex-wrap: nowrap;
+    width: auto;
+  }
+#canvas1{
+    display: inline-block;
+    margin: auto;
+    width: 320px;
+    height: 240px;
+}
+#canvas2{
+    display: inline-block;
+    margin: auto;
+    width: 320px;
+    height: 240px;
+}
+#canvas3{
+    display: inline-block;
+    margin: auto;
+    width: 320px;
+    height: 240px;
+}
