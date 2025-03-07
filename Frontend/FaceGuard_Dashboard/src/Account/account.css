@@ -107,7 +107,7 @@ button:hover{
     text-align: center;
     background-color: white;
     border: 50%;
-    height: 600px;
+    height: 60%;
     width: 85%;
     border-radius: 20px;
 
@@ -153,7 +153,7 @@ button:hover{
     position: fixed;
     margin-top: 0;
     margin-bottom: 50%;
-    overflow-y: scroll;
+    overflow-y: hidden;
     overflow-x:hidden;
     max-height: 60%;
     width: 85%;

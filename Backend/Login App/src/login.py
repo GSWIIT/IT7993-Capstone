@@ -14,44 +14,17 @@ import io
 import face_recognition
 from functools import wraps
 from datetime import datetime
+from blockchain_connection import get_contract, get_w3_object, get_owner_address, get_private_key
 
 login_bp = Blueprint('login', __name__, template_folder='templates')
 
 # Load OpenCV's pre-trained face detection model
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 
-# Configurations
-ALCHEMY_API_URL = "https://eth-sepolia.g.alchemy.com/v2/Dv7X6LhBni2gxlcUzAPs51cKqdUHK-8Y"
-CONTRACT_ADDRESS = "0xadB98376691e47b3F4A432fA76f681AFBe9e9817"
-PRIVATE_KEY = "9ea2167fb16f55f70f2afca8644f9903b8f05f45c6268cf5c435b5df777c82a5"  # Owner's private key, need to delete later
-#need to set up dotenv
-#PRIVATE_KEY = os.getenv("PRIVATE_KEY")  # Owner's private key
-
-abi_file_path = os.path.abspath("./BlockChain/artifacts/contracts/FaceGuard.sol/FaceGuard.json")
-print(f"Loading ABI from: {abi_file_path}")
-
-with open(abi_file_path, "r") as f:
-    abiJSONContent = json.load(f)
-
-CONTRACT_ABI = abiJSONContent["abi"]
-
-# Connect to Sepolia
-w3 = Web3(Web3.HTTPProvider(ALCHEMY_API_URL))
-
-if w3.is_connected() == True:
-    print("W3 Connection to contract successful!")
-else:
-    print("W3 connection failed!")
-    exit
-
-#if script connected, we should be able to load contract into variable
-# Load contract
-contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
-
-#to interact with the contract, we have to prove we are the owners by using the private key of the wallet that deployed the contract
-owner_account = w3.eth.account.from_key(PRIVATE_KEY)
-owner_address = owner_account.address
-w3.eth.default_account = owner_address
+contract = get_contract()
+w3 = get_w3_object()
+owner_address = get_owner_address()
+PRIVATE_KEY = get_private_key()
 
 #a list to hold users temporarily while they are trying to 2FA, so we don't have to query the blockchain every time.
 temporary_user_storage = []
@@ -150,7 +123,7 @@ def check_face_for_2FA():
                 return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
 
     #finally, compare euclidean distance of three detected faces for similarity comparison.
-    hamming_distance_limit = 6
+    hamming_distance_limit = 8
 
     for frameIndex, frameToScan in enumerate(frames):
         #need to make sure frame is not empty before trying to scan it
@@ -357,24 +330,18 @@ def create_lsh_from_image(img):
 
     print(f"Detected {len(faces)} face(s).")
 
-    for (x, y, w, h) in faces:
-        face_region = img[y:y+h, x:x+w]
+    # Get face encodings from the image
+    encodings = face_recognition.face_encodings(img)
+    if encodings:
+        face_encoding = encodings[0] #there should only be one face, so we can always take the first item in the array.
+        print("Face encoding obtained.")
+    else:
+        print("No face encoding found.")
+        return {"success": False, "reason": "No face encoding found."}
 
-        # Convert the face region from BGR to RGB
-        face_region_rgb = cv2.cvtColor(face_region, cv2.COLOR_BGR2RGB)
-
-        # Get face encodings from the cropped face region
-        encodings = face_recognition.face_encodings(img)
-        if encodings:
-            face_encoding = encodings[0]
-            print("Face encoding obtained.")
-        else:
-            print("No face encoding found.")
-            return {"success": False, "reason": "No face encoding found."}
-
-        lsh_hash_obj = hash_face_encoding(face_encoding)
+    lsh_hash_obj = hash_face_encoding(face_encoding)
         
-        return {"success": True, "reason": "OpenCV ran successfully. Face embedding created and hashed successfully.", "hash": lsh_hash_obj, "encoding": lsh_hash_obj}
+    return {"success": True, "reason": "OpenCV ran successfully. Face encoding created and hashed successfully.", "hash": lsh_hash_obj, "encoding": lsh_hash_obj}
     
 @login_bp.route('/checkface', methods=['POST'])
 def run_face_recognition():
