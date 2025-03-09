@@ -49,24 +49,37 @@ const home: React.FC = () => {
             <span id="logo">FACE</span> Guard
           </h2>
         </span>
-        <nav className="navbar">
-          <a
-            className="Home"
-          // onClick={() => handleNavigation("Home")}
-          >
-            Home
-          </a>
-          <Link to="/account" className="Account" >Account Settings</Link>
-          <Link to="/permissions" className="Groups" >Groups & Permissions</Link>
-          <a
-            className="About"
-          // onClick={() => handleNavigation("Appointment")}
-          >
-            About Us
-          </a>
-        
-          <a onClick={onLogOutClick}>Log Out</a>
-        </nav>
+             <nav className="navbar">
+               <Link to="/home">   
+                   <a
+                   className="Home"
+                   >
+                   Home
+                   </a>
+               </Link>
+                <Link to="/account" >
+                  <a
+                    className="Account"
+                  >
+                    Account Settings
+                  </a>
+                </Link>
+                <Link to="/permissions">
+                  <a
+                    className="Groups"
+                  >
+                    Groups & Permissions
+                  </a>
+                </Link>
+                <Link to="/about">
+                  <a
+                    className="About"
+                  >
+                    About Us
+                  </a>
+                </Link>
+                <a onClick={onLogOutClick}>Log Out</a>
+             </nav>
      </div>
     
      <div className="video-container">

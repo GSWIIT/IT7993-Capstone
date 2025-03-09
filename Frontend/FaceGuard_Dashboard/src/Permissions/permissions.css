@@ -298,7 +298,7 @@ th, td {
   font-size: 1rem;
 }
 
-li{
+.green-li{
   list-style-type: none;
   display: inline-block;
   padding: 10px;

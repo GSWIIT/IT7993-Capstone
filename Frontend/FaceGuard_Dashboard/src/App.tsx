@@ -8,6 +8,7 @@ import Login from './Login/login';
 import Home from "./Home/home"; 
 import Account from "./Account/account";
 import Permissions from "./Permissions/permissions";
+import About from "./About/about";
 function App() {
   return (
     <Router>
@@ -16,6 +17,7 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/account" element={<Account />} />
         <Route path="/permissions" element={<Permissions />} />
+        <Route path="/about" element={<About />} />
       </Routes>
     </Router>
   );
