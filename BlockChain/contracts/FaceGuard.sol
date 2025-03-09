@@ -23,8 +23,6 @@ contract FaceGuard {
     mapping(string => Group) private groups;
     string[] private allUsernames; // Array to store all created users
     string[] private allGroupNames; //Array to store group names, so they can be called later
-    string[] private adminPermissions;
-    string[] private userPermissions;
 
     address private owner;
 
@@ -34,7 +32,7 @@ contract FaceGuard {
     event FaceHashUpdated(string username);
     event PermissionsUpdated(string username);
     event UserToggled(string username, bool enabled);
-    event GroupCreated(string groupName);
+    event GroupCreated(string groupName, string[] permissions);
     event UserAddedToGroup(string username, string groupName);
     event UserRemovedFromGroup(string username, string groupName);
     event GroupPermissionsUpdated(string groupName, string[] permissions);
@@ -48,23 +46,34 @@ contract FaceGuard {
     constructor() {
         owner = msg.sender;
 
-        createGroup("Administrators");
-        createGroup("Users");
+        // Define the core groups permissions
+        string[4] memory adminPermissions = ["FaceGuard Create: All", "FaceGuard Read: All", "FaceGuard Update: All", "FaceGuard Delete: All"];
+        string[3] memory userPermissions = ["FaceGuard Read: Self", "FaceGuard Update: Self", "FaceGuard Delete: Self"];
+        string[4] memory groupManagersPermissions = ["FaceGuard Create: Groups", "FaceGuard Read: Groups", "FaceGuard Update: Groups", "FaceGuard Delete: Groups"];
+        string[4] memory userManagersPermissions = ["FaceGuard Create: Users", "FaceGuard Read: Users", "FaceGuard Update: Users", "FaceGuard Delete: Users"];
 
-        //construct admin permissions here
-        adminPermissions.push("Create All");
-        adminPermissions.push("Read All Users");
-        adminPermissions.push("Read All Groups");
-        adminPermissions.push("Update All");
-        adminPermissions.push("Delete All");
+        //create groups
+        createGroup("Administrators", convertToDynamic(adminPermissions));
+        createGroup("Users", convertToDynamic(userPermissions));
+        createGroup("Group Managers", convertToDynamic(groupManagersPermissions));
+        createGroup("User Managers", convertToDynamic(userManagersPermissions));
+    }
 
-        //construct user permissions here
-        userPermissions.push("Read Self Only");
-        userPermissions.push("Read Self Groups Only");
-        userPermissions.push("Update Self Only");
+    // Helper function to convert fixed-size array to dynamically-sized array
+    function convertToDynamic(string[4] memory fixedArray) private pure returns (string[] memory) {
+        string[] memory dynamicArray = new string[](fixedArray.length);
+        for (uint i = 0; i < fixedArray.length; i++) {
+            dynamicArray[i] = fixedArray[i];
+        }
+        return dynamicArray;
+    }
 
-        setGroupPermissions("Administrators", adminPermissions);
-        setGroupPermissions("Users", userPermissions);
+    function convertToDynamic(string[3] memory fixedArray) private pure returns (string[] memory) {
+        string[] memory dynamicArray = new string[](fixedArray.length);
+        for (uint i = 0; i < fixedArray.length; i++) {
+            dynamicArray[i] = fixedArray[i];
+        }
+        return dynamicArray;
     }
 
     function registerUser(string memory username, string memory passwordHash, string[] memory initialFaceHashes, string memory creationDate) public onlyOwner {
@@ -119,10 +128,10 @@ contract FaceGuard {
     }
 
     // Group management functions
-    function createGroup(string memory groupName) public onlyOwner {
-        groups[groupName] = Group(groupName, new string[](0), new string[](0));
+    function createGroup(string memory groupName, string[] memory permissions) public onlyOwner {
+        groups[groupName] = Group(groupName, new string[](0), permissions);
         allGroupNames.push(groupName);
-        emit GroupCreated(groupName);
+        emit GroupCreated(groupName, permissions);
     }
 
     function addUserToGroup(string memory username, string memory groupName) public onlyOwner {
@@ -214,6 +223,16 @@ contract FaceGuard {
 
     function setGroupPermissions(string memory groupName, string[] memory groupPermissions) public onlyOwner returns (string memory) {
         require(bytes(groups[groupName].name).length > 0, "Group does not exist");
+
+        // Define the core groups
+        string[4] memory coreGroups = ["Administrators", "Users", "Group Managers", "User Managers"];
+        
+        // Check if the groupName is in the core groups
+        for (uint i = 0; i < coreGroups.length; i++) {
+            require(keccak256(abi.encodePacked(groupName)) != keccak256(abi.encodePacked(coreGroups[i])),
+                    "Modifying core group permissions is not allowed");
+        }
+
         groups[groupName].permissions = groupPermissions;
         emit GroupPermissionsUpdated(groups[groupName].name, groups[groupName].permissions);
         return groups[groupName].name;
@@ -221,6 +240,15 @@ contract FaceGuard {
 
     function removeGroup(string memory groupName) public onlyOwner {
         require(bytes(groups[groupName].name).length > 0, "Group does not exist");
+
+        // Define the core groups
+        string[4] memory coreGroups = ["Administrators", "Users", "Group Managers", "User Managers"];
+        
+        // Check if the groupName is in the core groups
+        for (uint i = 0; i < coreGroups.length; i++) {
+            require(keccak256(abi.encodePacked(groupName)) != keccak256(abi.encodePacked(coreGroups[i])),
+                    "Modifying core group permissions is not allowed");
+        }
 
         // Remove from mapping
         delete groups[groupName];

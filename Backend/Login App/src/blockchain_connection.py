@@ -8,7 +8,7 @@ script_dir = Path(__file__).resolve().parent
 
 # Configurations
 ALCHEMY_API_URL = "https://eth-sepolia.g.alchemy.com/v2/Dv7X6LhBni2gxlcUzAPs51cKqdUHK-8Y"
-CONTRACT_ADDRESS = "0xadB98376691e47b3F4A432fA76f681AFBe9e9817"
+CONTRACT_ADDRESS = "0xccd7B4323cF0c9b0c1d90aa508E7D3b5530225B6"
 PRIVATE_KEY = "9ea2167fb16f55f70f2afca8644f9903b8f05f45c6268cf5c435b5df777c82a5"  # Owner's private key, need to delete later
 #need to set up dotenv
 #PRIVATE_KEY = os.getenv("PRIVATE_KEY")  # Owner's private key
