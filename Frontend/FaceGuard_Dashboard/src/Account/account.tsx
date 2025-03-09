@@ -103,7 +103,7 @@ const account: React.FC = () => {
           About Us
         </a>
       
-        //<a onClick={onLogOutClick}>Log Out</a>
+        <a onClick={onLogOutClick}>Log Out</a>
       </nav>
      </div>
     
