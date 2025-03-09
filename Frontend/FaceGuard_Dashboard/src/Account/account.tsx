@@ -42,7 +42,7 @@ const account: React.FC = () => {
       })
   };
 
-  const handleScrollToSection = (id: string) => {
+  const handleScrollToSection = (id: 'profile' | 'password' | 'facereg' | 'delete') => {
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
@@ -168,6 +168,7 @@ const account: React.FC = () => {
                         onChange={(e) => setLastName(e.target.value)}
                       />
                     </div>
+                    <br></br>
                     <button className="profile-btn" onClick={onSaveNameClick}>Submit</button>
 							    </section>
 

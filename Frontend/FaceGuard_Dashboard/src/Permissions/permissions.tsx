@@ -189,7 +189,7 @@ const Permissions: React.FC = () => {
     getUsers();
     getGroups();
     getPermissions();
-    handleScrollToSection("user");
+    handleScrollToSection("users");
   }, []);
 
 
@@ -331,20 +331,20 @@ const Permissions: React.FC = () => {
 
           <nav className="permissions-navbar">
                     <a
-                        className={`user ${activeTab === 'user' ? 'active' : ''}`}
-                        onClick={() => handleScrollToSection("user")}
+                        className={`user ${activeTab === 'users' ? 'active' : ''}`}
+                        onClick={() => handleScrollToSection("users")}
                     >
                     User
                     </a>
                     <a
-                        className={`group ${activeTab === 'group' ? 'active' : ''}`}
-                        onClick={() => handleScrollToSection("group")}
+                        className={`group ${activeTab === 'groups' ? 'active' : ''}`}
+                        onClick={() => handleScrollToSection("groups")}
                     >
                     Group
                     </a>
                 </nav>
           <div className="content">
-            <section id="user" className="main">
+            <section id="users" className="main">
               <div className="permissions-table-container">
                 <table className="permissions-table">
                   <thead className="permissions-table-head">
@@ -381,7 +381,7 @@ const Permissions: React.FC = () => {
               </div>
             </section>
             
-            <section id="group" className="main">
+            <section id="groups" className="main">
               <div className="permissions-table-container">                
                 <table className="permissions-table">
                   <thead className="permissions-table-head">

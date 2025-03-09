@@ -179,7 +179,21 @@ button:hover{
     text-align: center;
     display: block;
 }
-
+.delete-btn{
+    background-color: transparent;
+    color: #f44336;
+    border: 1px solid #f44336;
+    padding: 8px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+.delete-btn:hover{
+    background-color: #f44336;
+    color: white;
+    border: 1px solid #f44336;
+    border-radius: 10px;
+    cursor: pointer;
+}   
 .major > h2{
     color: rgba(18,166,159,255);
 }
