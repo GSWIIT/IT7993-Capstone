@@ -4,8 +4,12 @@ import "./account.css";
 import backgroundvideo from "../assets/backgroundvideo.mp4";
 import { Link } from "react-router-dom";
 
-const home: React.FC = () => {
-  const navigator = useNavigate()
+const account: React.FC = () => {
+  const navigator = useNavigate();
+
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'facereg' | 'delete'>('profile');
 
   const checkSession = async () => {
     fetch('http://127.0.0.1:5000/auth/check-session', {
@@ -42,7 +46,25 @@ const home: React.FC = () => {
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
+      setActiveTab(id); // Set the active tab
     }
+  };
+
+  const onSaveNameClick = () => {
+    fetch('http://127.0.0.1:5000/account/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: "include",
+      body: JSON.stringify({ first_name: firstName, last_name: lastName }),
+    })
+    .then((response) => response.json())
+    .then((result) => {
+      if (result.success) {
+        console.log("Names saved successfully.");
+      } else {
+        console.error("Error saving names:", result.reason);
+      }
+    });
   };
 
   useEffect(() => {
@@ -73,17 +95,12 @@ const home: React.FC = () => {
         >
           Account Settings
         </a>
-        <a
-          className="Groups"
-        //  onClick={() => handleNavigation("Posts")}
-        >
-          Groups & Permissions
-        </a>
+        <Link to="/permissions" className="Groups" >Groups & Permissions</Link>
         <a
           className="About"
          // onClick={() => handleNavigation("Appointment")}
         >
-          About
+          About Us
         </a>
       
         //<a onClick={onLogOutClick}>Log Out</a>
@@ -106,25 +123,25 @@ const home: React.FC = () => {
             <div className="content-container">
                <nav className="account-navbar">
                     <a
-                        className="profile"
+                        className={`profile ${activeTab === 'profile' ? 'active' : ''}`}
                         onClick={() => handleScrollToSection("profile")}
                     >
                     Profile
                     </a>
                     <a
-                        className="password"
+                        className={`password ${activeTab === 'password' ? 'active' : ''}`}
                         onClick={() => handleScrollToSection("password")}
                     >
                     Password
                     </a>
                     <a
-                        className="facereg"
+                        className={`facereg ${activeTab === 'facereg' ? 'active' : ''}`}
                         onClick={() => handleScrollToSection("facereg")}
                     >
                     Facial Recognition
                     </a>
                     <a
-                        className="delete"
+                        className={`delete ${activeTab === 'delete' ? 'active' : ''}`}
                         onClick={() => handleScrollToSection("delete")}
                     >
                     Delete Account
@@ -136,10 +153,22 @@ const home: React.FC = () => {
                       <h2>Edit Profile</h2>
                     </header>
                     <div className="profile-container">
-                      <input className="firstname-txt" type="text" placeholder="Firstname" />
-                      <input className="lastname-txt" type="text" placeholder="Lastname" />
+                      <input 
+                        className="firstname-txt" 
+                        type="text" 
+                        placeholder="Firstname" 
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                      />
+                      <input 
+                        className="lastname-txt" 
+                        type="text" 
+                        placeholder="Lastname" 
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                      />
                     </div>
-                    <button className="profile-btn">Submit</button>
+                    <button className="profile-btn" onClick={onSaveNameClick}>Submit</button>
 							    </section>
 
                   <section id="password" className="main">
@@ -157,16 +186,14 @@ const home: React.FC = () => {
 
                <section id="facereg" className="main">
                     <header className="major">
-                      <h2>Facial Recognition</h2>
+                      <h2>Re-register Facial Recognition</h2>
                     </header>
-                    <p>Re-register Facial Recognition</p>
-                    <br></br>
-                    <button className="facereg-btn">Start</button>
+                    <button className="facereg-btn">Get Started!</button>
 							</section> 
 
                <section id="delete" className="main">
                     <header className="major">
-                      <h2>Delete Account</h2>
+                      <h2>Delete Your Account</h2>
                     </header>
                     <p>Are you sure you want to delete your account? This action cannot be undone.</p>
                     <br></br>
@@ -182,4 +209,4 @@ const home: React.FC = () => {
   );
 };
 
-export default home;
+export default account;

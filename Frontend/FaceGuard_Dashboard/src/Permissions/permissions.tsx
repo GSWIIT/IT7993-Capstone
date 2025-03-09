@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./permissions.css"
-
+import { Link } from "react-router-dom";
+import backgroundvideo from "../assets/backgroundvideo.mp4";
 interface Group {
+
   name: string;
   permissions: string[];
   members: string[];
@@ -187,145 +189,239 @@ const Permissions: React.FC = () => {
     getUsers();
     getGroups();
     getPermissions();
+    handleScrollToSection("user");
   }, []);
 
+
+  const onLogOutClick = () => {
+    console.log("Logging out...");
+    fetch('http://127.0.0.1:5000/auth/logoff-session', {
+      method: 'GET',
+      credentials: "include"
+    })
+      .then((response) => response.json())
+      .then(() => {
+        navigator("/")
+      })
+  };
+  const handleScrollToSection = (id: 'users' | 'groups') => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+      setActiveTab(id); // Set the active tab
+    }
+  };
+
   return (
-    <div className="permissions-container">
-      {showServerMessage && (
-        <div className="server-message-overlay">
-          <div className="server-message-box">
-            {isLoading ? (
-              <>
-                <div className="loading-spinner"></div>
-                <p>{serverMessage}</p>
-              </>
-            ) : (
-              <>
-                <p>{serverMessage}</p>
-                <button onClick={hideLoadingOverlay} className="ok-button">OK</button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      <div className="permissions-tabs">
-        <button className={`permissions-tab ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>Users</button>
-        <button className={`permissions-tab ${activeTab === 'groups' ? 'active' : ''}`} onClick={() => setActiveTab('groups')}>Groups</button>
-      </div>
+    <div>
+      <div className="container">
+      <span className="icon">
+        <h2>
+          <span id="logo">FACE</span> Guard
+        </h2>
+      </span>
+      <nav className="navbar">
+        <Link to="/home">   
+            <a
+            className="Home"
+            >
+            Home
+            </a>
+        </Link>
+       <Link to="/account" >
+        <a
+          className="Account"
+        >
+          Account Settings
+        </a>
+        </Link>
+        <a
+          className="Groups"
+        >
+          Groups & Permissions
+        </a>
+        <a
+          className="About"
+        >
+          About Us
+        </a>
       
-      {activeTab === 'users' ? (
-        <div className="permissions-table-container">
-          <div>
-            <h2>User Information</h2>
-            <p>Note: Your permission level impacts this view!</p>
-            <p>Your Current Permissions: {userPermissions.join(', ')}</p>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Username</th>
-                <th>Face Hashes</th>
-                <th>Face Re-Enrollment Required</th>
-                <th>Account Creation Date</th>
-                <th>Last Edit Date</th>
-                <th>Enabled</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.username}>
-                  <td>{user.username}</td>
-                  <td>{`${user.faceHashes}`}</td>
-                  <td>{`${user.faceReenrollmentRequired}`}</td>
-                  <td>{user.accountCreationDate}</td>
-                  <td>{user.lastEditDate}</td>
-                  <td>{`${user.enabled}`}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="permissions-table-container">
-          <div>
-            <h2>Group Information</h2>
-            <p>Note: Your permission level impacts this view!</p>
-          </div>
-          <button className="permissions-create-button" onClick={toggleModal}>Create A Group</button>
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Permissions</th>
-                <th>Users</th>
-                <th>Edit Group</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groups.map((group) => (
-                <tr key={group.name}>
-                  <td>{group.name}</td>
-                  <td>{group.permissions.join(', ')}</td>
-                  <td>{group.members.join(', ')}</td>
-                  <td>
-                    <button className="permissions-edit-button" onClick={() => alert(`Edit group with GUID: ${group.name}`)}>Edit</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+        <a onClick={onLogOutClick}>Log Out</a>
+      </nav>
+     </div>
+    
+     <div className="permissions-video-container">
+            { <video
+                className="permission-background-video"
+                autoPlay
+                muted
+                loop
+            >
+                <source src={backgroundvideo} type="video/mp4" />
 
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>Create a Group</h2>
-            <input
-              type="text"
-              placeholder="Group Name"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-            />
+            </video> }
+        <div className="permissions-title">
+            <h1>Groups and Permissions</h1>
+        </div>
+        <div className="permissions-container">
+        {showModal && (
+            <div className="modal-overlay">
+              <div className="modal-content">
+                <h2>Create a Group</h2>
+                
+                <div className="add-permissions-container">
+                    <input
+                      type="text"
+                      placeholder="Group Name"
+                      value={groupName}
+                      onChange={(e) => setGroupName(e.target.value)}
+                    />
+                      <input
+                        type="text"
+                        placeholder="Enter permission"
+                        value={newPermission}
+                        onChange={(e) => setNewPermission(e.target.value)}
+                        
+                      />
+                </div>
+                <button onClick={handleAddPermission} className="add-permission-button">Add</button>
+                <table className="permissions-table">
+                  <thead>
+                    <tr>
+                      <th>Permission Name</th>
+                      <th>Delete</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {permissionsArray.map((permission, index) => (
+                      <tr key={index}>
+                        <td>{permission}</td>
+                        <td>
+                          <button className="delete-permission" onClick={() => handleDeletePermission(permission)}>Delete</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="modal-buttons">
+                  <button onClick={handleCreateGroup} className="modal-submit">Submit</button>
+                  <button onClick={toggleModal} className="modal-cancel">Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
+          {showServerMessage && (
+            <div className="server-message-overlay">
+              <div className="server-message-box">
+                {isLoading ? (
+                  <>
+                    <div className="loading-spinner"></div>
+                    <p>{serverMessage}</p>
+                  </>
+                ) : (
+                  <>
+                    <p>{serverMessage}</p>
+                    <button onClick={hideLoadingOverlay} className="ok-button">OK</button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+
+          <nav className="permissions-navbar">
+                    <a
+                        className={`user ${activeTab === 'user' ? 'active' : ''}`}
+                        onClick={() => handleScrollToSection("user")}
+                    >
+                    User
+                    </a>
+                    <a
+                        className={`group ${activeTab === 'group' ? 'active' : ''}`}
+                        onClick={() => handleScrollToSection("group")}
+                    >
+                    Group
+                    </a>
+                </nav>
+          <div className="content">
+            <section id="user" className="main">
+              <div className="permissions-table-container">
+                <table className="permissions-table">
+                  <thead className="permissions-table-head">
+                    <tr>
+                      <th>Username</th>
+                      <th>Face Hashes</th>
+                      <th>Face Re-Enrollment Required</th>
+                      <th>Account Creation Date</th>
+                      <th>Last Edit Date</th>
+                      <th>Enabled</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((user) => (
+                      <tr key={user.username}>
+                        <td>{user.username}</td>
+                        <td>{`${user.faceHashes}`}</td>
+                        <td>{`${user.faceReenrollmentRequired}`}</td>
+                        <td>{user.accountCreationDate}</td>
+                        <td>{user.lastEditDate}</td>
+                        <td>{`${user.enabled}`}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="permissions-display-container">
+                  <p className="user-permissions">Your Current Permissions:</p>
+                  <ul className="user-permissions-list">
+                    {userPermissions.map((permission, index) => (
+                      <li key={index}>{permission}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </section>
             
-            <table className="permissions-table">
-              <thead>
-                <tr>
-                  <th>Permission Name</th>
-                  <th>Delete</th>
-                </tr>
-              </thead>
-              <tbody>
-                {permissionsArray.map((permission, index) => (
-                  <tr key={index}>
-                    <td>{permission}</td>
-                    <td>
-                      <button className="delete-permission" onClick={() => handleDeletePermission(permission)}>Delete</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <section id="group" className="main">
+              <div className="permissions-table-container">                
+                <table className="permissions-table">
+                  <thead className="permissions-table-head">
+                    <tr>
+                      <th>Name</th>
+                      <th>Permissions</th>
+                      <th>Users</th>
+                      <th>Edit Group</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groups.map((group) => (
+                      <tr key={group.name}>
+                        <td>{group.name}</td>
+                        <td>
+                          <ul className="group-permissions-list">
+                           {group.permissions.map((permission,index)=>
+                            <li key={index}>{permission} </li>
+                            )}
+                          </ul>
+                        </td>
+                        <td>{group.members.join(', ')}</td>
+                        <td>
+                          <button className="permissions-edit-button" onClick={() => alert(`Edit group with GUID: ${group.name}`)}>Edit</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="create-group-btn-container">
+                  <button className="permissions-create-button" onClick={toggleModal}>Create A Group</button>
+                </div>
+              </div>
+            </section>
+          
 
-            <div className="add-permission-container">
-              <input
-                type="text"
-                placeholder="Enter permission"
-                value={newPermission}
-                onChange={(e) => setNewPermission(e.target.value)}
-              />
-              <button onClick={handleAddPermission} className="add-permission-button">Add</button>
-            </div>
-
-            <div className="modal-buttons">
-              <button onClick={handleCreateGroup} className="modal-submit">Submit</button>
-              <button onClick={toggleModal} className="modal-cancel">Cancel</button>
-            </div>
+         
           </div>
         </div>
-      )}
-
+      </div>
     </div>
   );
 };

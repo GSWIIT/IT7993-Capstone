@@ -62,7 +62,7 @@ const home: React.FC = () => {
             className="About"
           // onClick={() => handleNavigation("Appointment")}
           >
-            About
+            About Us
           </a>
         
           <a onClick={onLogOutClick}>Log Out</a>
