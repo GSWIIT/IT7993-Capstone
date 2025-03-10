@@ -22,10 +22,11 @@ def get_all_users():
     permissions = contract.functions.getUserPermissions(session["username"]).call()
 
     all_users_array = []
-    has_read_all_users = "FaceGuard Read: All" in permissions
-    has_read_self_only = "FaceGuard Read: Users" in permissions
+    has_read_all_users = any("FaceGuard Read: All" in perm for perm in permissions)
+    has_read_users_manager = any("FaceGuard Read: Users" in perm for perm in permissions)
+    has_read_self_only = any("FaceGuard Read: Self" in perm for perm in permissions)
 
-    #if user does not have the "Read All Users" permission, not all users will be returned!
+    #if user does not have permission, not all users will be returned!
     #all_users_array will change based on the session user's permissions!
 
     usernames = contract.functions.getAllUsernames().call()
@@ -33,7 +34,7 @@ def get_all_users():
     for username in usernames:
         include_in_return_array = False
 
-        if has_read_all_users:
+        if (has_read_all_users) or (has_read_users_manager):
             include_in_return_array = True
         else:
             if has_read_self_only:
@@ -67,8 +68,9 @@ def get_all_groups():
     permissions = contract.functions.getUserPermissions(session["username"]).call()
 
     all_groups_array = []
-    has_read_all_groups = "FaceGuard Read: All" in permissions
-    has_read_self_group_only = "FaceGuard Read: Self" in permissions
+    has_read_all_groups = any("FaceGuard Read: All" in perm for perm in permissions)
+    has_read_groups_manager = any("FaceGuard Read: Groups" in perm for perm in permissions)
+    has_read_self_group_only = any("FaceGuard Read: Self" in perm for perm in permissions)
 
     print("User [" + str(session["username"]) + "] has permission to read all groups: ", has_read_all_groups)
     print("User [" + str(session["username"]) + "] has permission to read self groups only: ", has_read_self_group_only)
@@ -82,7 +84,7 @@ def get_all_groups():
         group_obj = contract.functions.getGroup(group).call()
         include_in_return_array = False
 
-        if has_read_all_groups:
+        if (has_read_all_groups) or (has_read_groups_manager):
             include_in_return_array = True
         else:
             if has_read_self_group_only:
@@ -194,6 +196,173 @@ def create_group():
         # Print transaction status
         if receipt.status == 1:
             return jsonify({"success": True, "reason": "Group created successfully."})
+        else:
+            return jsonify({"success": False, "reason": "Error encountered while writing to the blockchain..."})
+    else:
+        return jsonify({"success": False, "reason": "User does not have permission to perform this action!"})
+    
+#protected with login_required decorator function
+@permissions_bp.route('/update-group', methods=['POST'])
+@login_required
+def update_group():
+    data = request.get_json()
+    originalGroupName = data.get("originalGroupName")
+    newGroupName = data.get("newGroupName")
+    groupPermissions = data.get("groupPermissions")
+
+    print(originalGroupName, newGroupName, groupPermissions)
+
+    permissions = contract.functions.getUserPermissions(session["username"]).call()
+
+    print("User [" + str(session["username"]) + "] permissions: ", permissions)
+    has_update_group_permissions = ("FaceGuard Update: All" in permissions) or ("FaceGuard Update: Groups" in permissions)
+    print("User [" + str(session["username"]) + "] has permission to update groups: ", has_update_group_permissions)
+
+    if has_update_group_permissions:
+        print("Group Name needs update: ", originalGroupName != newGroupName)
+        #estimate the cost of the ethereum transaction by predicting gas
+        print("Estimating gas...")
+        try:
+            estimated_gas = contract.functions.updateGroup(originalGroupName, newGroupName, groupPermissions).estimate_gas({"from": owner_address})
+        except Exception as e:
+            return jsonify ({"success": False, "reason": "Error encountered! Blockchain Response[" + str(e.args[0]) + "]."})
+
+        # Get the suggested gas price
+        gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
+        max_priority_fee = w3.to_wei("2", "gwei")  # Priority fee (adjust based on congestion)
+        max_fee_per_gas = gas_price + max_priority_fee
+
+        tx = contract.functions.updateGroup(originalGroupName, newGroupName, groupPermissions).build_transaction({
+            "from": owner_address,
+            "nonce": w3.eth.get_transaction_count(owner_address),
+            "gas": estimated_gas + 200000, 
+            "maxFeePerGas": max_fee_per_gas,  # Total fee
+            "maxPriorityFeePerGas": max_priority_fee,  # Tip for miners
+        })
+
+        # Sign transaction with private key
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
+
+        print("Sending group name update transaction...")
+        # Send transaction to blockchain
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+
+        # Wait for confirmation of transaction
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+        # Print transaction status
+        if receipt.status == 1:
+            print("Updated group name successfully.")
+            print("Group permissions updated successfully.")
+            return jsonify({"success": True, "reason": "Group permissions updated successfully."})
+        else:
+            return jsonify({"success": False, "reason": "Error encountered while writing to the blockchain..."})
+    else:
+        return jsonify({"success": False, "reason": "User does not have permission to perform this action!"})
+    
+#protected with login_required decorator function
+@permissions_bp.route('/add-group-user', methods=['POST'])
+@login_required
+def add_user_to_group():
+    data = request.get_json()
+    groupName = data.get("groupName")
+    usernameToUpdate = data.get("username")
+
+    print(groupName, usernameToUpdate)
+
+    permissions = contract.functions.getUserPermissions(session["username"]).call()
+
+    print("User [" + str(session["username"]) + "] permissions: ", permissions)
+    has_update_group_permissions = ("FaceGuard Update: All" in permissions) or ("FaceGuard Update: Groups" in permissions)
+    print("User [" + str(session["username"]) + "] has permission to update groups: ", has_update_group_permissions)
+
+    if has_update_group_permissions:
+        #estimate the cost of the ethereum transaction by predicting gas
+        print("Estimating gas...")
+        estimated_gas = contract.functions.addUserToGroup(groupName, usernameToUpdate).estimate_gas({"from": owner_address})
+
+        # Get the suggested gas price
+        gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
+        max_priority_fee = w3.to_wei("2", "gwei")  # Priority fee (adjust based on congestion)
+        max_fee_per_gas = gas_price + max_priority_fee
+
+        tx = contract.functions.addUserToGroup(groupName, usernameToUpdate).build_transaction({
+            "from": owner_address,
+            "nonce": w3.eth.get_transaction_count(owner_address),
+            "gas": estimated_gas + 200000, 
+            "maxFeePerGas": max_fee_per_gas,  # Total fee
+            "maxPriorityFeePerGas": max_priority_fee,  # Tip for miners
+        })
+
+        # Sign transaction with private key
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
+
+        print("Sending transaction to add user to group...")
+        # Send transaction to blockchain
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+
+        # Wait for confirmation of transaction
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+        # Print transaction status
+        if receipt.status == 1:
+            print("Updated group name successfully.")
+            print("Group permissions updated successfully.")
+            return jsonify({"success": True, "reason": "Group permissions updated successfully."})
+        else:
+            return jsonify({"success": False, "reason": "Error encountered while writing to the blockchain..."})
+    else:
+        return jsonify({"success": False, "reason": "User does not have permission to perform this action!"})
+    
+#protected with login_required decorator function
+@permissions_bp.route('/remove-group-user', methods=['POST'])
+@login_required
+def remove_user_to_group():
+    data = request.get_json()
+    groupName = data.get("groupName")
+    usernameToUpdate = data.get("username")
+
+    print(groupName, usernameToUpdate)
+
+    permissions = contract.functions.getUserPermissions(session["username"]).call()
+
+    print("User [" + str(session["username"]) + "] permissions: ", permissions)
+    has_update_group_permissions = ("FaceGuard Update: All" in permissions) or ("FaceGuard Update: Groups" in permissions)
+    print("User [" + str(session["username"]) + "] has permission to update groups: ", has_update_group_permissions)
+
+    if has_update_group_permissions:
+        #estimate the cost of the ethereum transaction by predicting gas
+        print("Estimating gas...")
+        estimated_gas = contract.functions.removeUserFromGroup(groupName, usernameToUpdate).estimate_gas({"from": owner_address})
+
+        # Get the suggested gas price
+        gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
+        max_priority_fee = w3.to_wei("2", "gwei")  # Priority fee (adjust based on congestion)
+        max_fee_per_gas = gas_price + max_priority_fee
+
+        tx = contract.functions.removeUserFromGroup(groupName, usernameToUpdate).build_transaction({
+            "from": owner_address,
+            "nonce": w3.eth.get_transaction_count(owner_address),
+            "gas": estimated_gas + 200000, 
+            "maxFeePerGas": max_fee_per_gas,  # Total fee
+            "maxPriorityFeePerGas": max_priority_fee,  # Tip for miners
+        })
+
+        # Sign transaction with private key
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
+
+        print("Sending transaction to remove user from group...")
+        # Send transaction to blockchain
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+
+        # Wait for confirmation of transaction
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+        # Print transaction status
+        if receipt.status == 1:
+            print("Updated group name successfully.")
+            print("Group permissions updated successfully.")
+            return jsonify({"success": True, "reason": "Group permissions updated successfully."})
         else:
             return jsonify({"success": False, "reason": "Error encountered while writing to the blockchain..."})
     else:

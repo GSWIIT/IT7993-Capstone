@@ -33,40 +33,86 @@ const Permissions: React.FC = () => {
   const [userPermissions, setPermissions] = useState<string[]>(["None"]);
 
   const [showModal, setShowModal] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [permissionsArray, setPermissionsArray] = useState<string[]>([]);
   const [newPermission, setNewPermission] = useState("");
+  const [editingGroup, setEditingGroup] = useState<Group | null>(null);
+
+  const [showEditUsersOverlay, setShowEditUsersOverlay] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [newUser, setNewUser] = useState("");
 
   // Server message overlay states
   const [showServerMessage, setShowServerMessage] = useState(false);
   const [serverMessage, setServerMessage] = useState("Loading...");
   const [isLoading, setIsLoading] = useState(true);
 
-  const toggleModal = () => {
-    setShowModal(!showModal);
-    setGroupName("");
-    setPermissionsArray([]);
+  const toggleModal = (group?: Group) => {
+    if (group) {
+      setEditMode(true);
+      setGroupName(group.name);
+      setPermissionsArray(group.permissions);
+      setEditingGroup(group);
+    } else {
+      setEditMode(false);
+      setGroupName("");
+      setPermissionsArray([]);
+      setEditingGroup(null);
+    }
     setNewPermission("");
+    setShowModal(!showModal);
   };
 
   const handleCreateGroup = async () => {
     setShowModal(false)
-    console.log("Creating group:", groupName, "with permissions:", permissionsArray);
     showLoadingOverlay()
-    await fetch('http://127.0.0.1:5000/permissions/create-group', {
-      method: 'POST',
-      credentials: "include",
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        groupName: groupName,
-        groupPermissions: permissionsArray
-      }),
-    })
-    .then((response) => response.json())
-    .then((result) => {
-      setIsLoading(false)
-      setServerResponseMessage(result.reason)
-    })
+
+    if(editingGroup != null)
+    {
+      console.log("Update group:", editingGroup.name, " to ", groupName, "with permissions:", permissionsArray);
+      await fetch('http://127.0.0.1:5000/permissions/update-group', {
+        method: 'POST',
+        credentials: "include",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          originalGroupName: editingGroup.name,
+          newGroupName: groupName,
+          groupPermissions: permissionsArray
+        }),
+      })
+      .then((response) => response.json())
+      .then((result) => {
+        setIsLoading(false)
+        setServerResponseMessage(result.reason)
+        if(result.success)
+        {
+          getGroups()
+        }
+      })
+    }
+    else
+    {
+      console.log("Creating group:", groupName, "with permissions:", permissionsArray);
+      await fetch('http://127.0.0.1:5000/permissions/create-group', {
+        method: 'POST',
+        credentials: "include",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          groupName: groupName,
+          groupPermissions: permissionsArray
+        }),
+      })
+      .then((response) => response.json())
+      .then((result) => {
+        setIsLoading(false)
+        setServerResponseMessage(result.reason)
+        if(result.success)
+        {
+          getGroups()
+        }
+      })
+    }
   };
 
   const handleAddPermission = () => {
@@ -78,6 +124,65 @@ const Permissions: React.FC = () => {
 
   const handleDeletePermission = (permission: string) => {
     setPermissionsArray(permissionsArray.filter((perm) => perm !== permission));
+  };
+
+  const toggleEditUsersOverlay = (group?: Group) => {
+    setSelectedGroup(group || null);
+    setShowEditUsersOverlay(!showEditUsersOverlay);
+  };
+
+  const handleAddUser = async () => {
+    if (newUser.trim() && selectedGroup) {
+      showLoadingOverlay()
+      await fetch('http://127.0.0.1:5000/permissions/add-group-user', {
+        method: 'POST',
+        credentials: "include",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          groupName: selectedGroup.name,
+          username: newUser.trim()
+        }),
+      })
+      .then((response) => response.json())
+      .then((result) => {
+        setIsLoading(false)
+        setServerResponseMessage(result.reason)
+        if(result.success)
+        {
+          hideLoadingOverlay()
+          setSelectedGroup({ ...selectedGroup, members: [...selectedGroup.members, newUser.trim()] });
+        }
+
+        setNewUser("");
+      })
+    }
+  };
+
+  const handleDeleteUser = async (usernameToRemove: string) => {
+    if (selectedGroup) {
+      showLoadingOverlay()
+      await fetch('http://127.0.0.1:5000/permissions/remove-group-user', {
+        method: 'POST',
+        credentials: "include",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          groupName: selectedGroup.name,
+          username: usernameToRemove
+        }),
+      })
+      .then((response) => response.json())
+      .then((result) => {
+        setIsLoading(false)
+        setServerResponseMessage(result.reason)
+        if(result.success)
+        {
+          hideLoadingOverlay()
+          setSelectedGroup({ ...selectedGroup, members: selectedGroup.members.filter(user => user !== usernameToRemove) });
+        }
+        
+        setNewUser("");
+      })
+    }
   };
 
   const showLoadingOverlay = () => {
@@ -146,7 +251,7 @@ const Permissions: React.FC = () => {
         if (result.success) 
         {
           // Transform the groups data in case there are too many usernames (it keeps the UI from clogging up)
-          const transformedGroups = result.array.map(group => ({
+          const transformedGroups = result.array.map((group: { members: string | any[]; }) => ({
             ...group,
             members: group.members.length > 3 
               ? [...group.members.slice(0, 3), "..."] 
@@ -265,25 +370,60 @@ const Permissions: React.FC = () => {
             <h1>Groups and Permissions</h1>
         </div>
         <div className="permissions-container">
+        {showEditUsersOverlay && selectedGroup && (
+          <div className="permissions_edit_group_users_overlay">
+            <div className="permissions_edit_group_users_overlay_content">
+              <h2>Edit Users: {selectedGroup.name}</h2>
+              <table className="permissions_edit_group_users_user_table">
+                <thead>
+                  <tr>
+                    <th>Username</th>
+                    <th>Delete</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedGroup.members.map((username, index) => (
+                    <tr key={index}>
+                      <td>{username}</td>
+                      <td>
+                        <button className="permissions_edit_group_users_delete_user" onClick={() => handleDeleteUser(username)}>Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="permissions_edit_group_users_add_user_container">
+                <input
+                  type="text"
+                  placeholder="Enter username"
+                  value={newUser}
+                  onChange={(e) => setNewUser(e.target.value)}
+                />
+                <button onClick={handleAddUser} className="permissions_edit_group_users_add_user_button">Add</button>
+              </div>
+              <div className="permissions_edit_group_users_overlay_buttons">
+                <button className="permissions_edit_group_users_submit_button" onClick={() => toggleEditUsersOverlay()}>Done</button>
+              </div>
+            </div>
+          </div>
+        )}
         {showModal && (
             <div className="modal-overlay">
               <div className="modal-content">
-                <h2>Create a Group</h2>
-                
+                <h2>{editMode ? "Edit Group" : "Create a Group"}</h2>
                 <div className="add-permissions-container">
-                    <input
-                      type="text"
-                      placeholder="Group Name"
-                      value={groupName}
-                      onChange={(e) => setGroupName(e.target.value)}
-                    />
-                      <input
-                        type="text"
-                        placeholder="Enter permission"
-                        value={newPermission}
-                        onChange={(e) => setNewPermission(e.target.value)}
-                        
-                      />
+                  <input
+                    type="text"
+                    placeholder="Group Name"
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Enter permission"
+                    value={newPermission}
+                    onChange={(e) => setNewPermission(e.target.value)}
+                  />
                 </div>
                 <button onClick={handleAddPermission} className="add-permission-button">Add</button>
                 <table className="permissions-table">
@@ -305,8 +445,8 @@ const Permissions: React.FC = () => {
                   </tbody>
                 </table>
                 <div className="modal-buttons">
-                  <button onClick={handleCreateGroup} className="modal-submit">Submit</button>
-                  <button onClick={toggleModal} className="modal-cancel">Cancel</button>
+                  <button onClick={handleCreateGroup} className="modal-submit">{editMode ? "Save Changes" : "Submit"}</button>
+                  <button onClick={() => toggleModal()} className="modal-cancel">Cancel</button>
                 </div>
               </div>
             </div>
@@ -390,6 +530,7 @@ const Permissions: React.FC = () => {
                       <th>Name</th>
                       <th>Permissions</th>
                       <th>Users</th>
+                      <th>Edit Users</th>
                       <th>Edit Group</th>
                     </tr>
                   </thead>
@@ -406,14 +547,17 @@ const Permissions: React.FC = () => {
                         </td>
                         <td>{group.members.join(', ')}</td>
                         <td>
-                          <button className="permissions-edit-button" onClick={() => alert(`Edit group with GUID: ${group.name}`)}>Edit</button>
+                        <button className="permissions-edit-button" onClick={() => toggleEditUsersOverlay(group)}>Edit Users</button>
+                        </td>
+                        <td>
+                          <button className="permissions-edit-button" onClick={() => toggleModal(group)}>Edit Group</button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
                 <div className="create-group-btn-container">
-                  <button className="permissions-create-button" onClick={toggleModal}>Create A Group</button>
+                  <button className="permissions-create-button" onClick={() => toggleModal()}>Create A Group</button>
                 </div>
               </div>
             </section>
