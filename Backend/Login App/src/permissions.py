@@ -367,3 +367,54 @@ def remove_user_to_group():
             return jsonify({"success": False, "reason": "Error encountered while writing to the blockchain..."})
     else:
         return jsonify({"success": False, "reason": "User does not have permission to perform this action!"})
+    
+#protected with login_required decorator function
+@permissions_bp.route('/delete-group', methods=['POST'])
+@login_required
+def delete_group():
+    data = request.get_json()
+    groupName = data.get("groupName")
+
+    permissions = contract.functions.getUserPermissions(session["username"]).call()
+
+    print("User [" + str(session["username"]) + "] permissions: ", permissions)
+    has_delete_group_permission = any("FaceGuard Delete: All" in perm for perm in permissions)
+    has_delete_group_manager_permission = any("FaceGuard Delete: Groups" in perm for perm in permissions)
+    print("User [" + str(session["username"]) + "] has permission to update groups: ", (has_delete_group_permission) or (has_delete_group_manager_permission))
+
+    if (has_delete_group_permission) or (has_delete_group_manager_permission):
+        #estimate the cost of the ethereum transaction by predicting gas
+        print("Estimating gas...")
+        estimated_gas = contract.functions.removeGroup(groupName).estimate_gas({"from": owner_address})
+
+        # Get the suggested gas price
+        gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
+        max_priority_fee = w3.to_wei("2", "gwei")  # Priority fee (adjust based on congestion)
+        max_fee_per_gas = gas_price + max_priority_fee
+
+        tx = contract.functions.removeGroup(groupName).build_transaction({
+            "from": owner_address,
+            "nonce": w3.eth.get_transaction_count(owner_address),
+            "gas": estimated_gas + 200000, 
+            "maxFeePerGas": max_fee_per_gas,  # Total fee
+            "maxPriorityFeePerGas": max_priority_fee,  # Tip for miners
+        })
+
+        # Sign transaction with private key
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
+
+        print("Sending transaction to remove group...")
+        # Send transaction to blockchain
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+
+        # Wait for confirmation of transaction
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+        # Print transaction status
+        if receipt.status == 1:
+            print("Deleted group successfully.")
+            return jsonify({"success": True, "reason": "Deleted group successfully."})
+        else:
+            return jsonify({"success": False, "reason": "Error encountered while writing to the blockchain..."})
+    else:
+        return jsonify({"success": False, "reason": "User does not have permission to perform this action!"})

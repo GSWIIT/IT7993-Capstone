@@ -267,6 +267,29 @@ const Permissions: React.FC = () => {
       });
   }
 
+  const deleteGroup = async (groupName: string) => {
+    showLoadingOverlay()
+    await fetch('http://127.0.0.1:5000/permissions/delete-group', {
+      method: 'POST',
+      credentials: "include",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        groupName: groupName
+      }),
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        console.log(result);
+        setIsLoading(false);
+        setServerResponseMessage(result.reason);
+        if (result.success) 
+        {
+          getGroups();
+          hideLoadingOverlay();
+        }
+      });
+  }
+
   const getPermissions = async () => {
     await fetch('http://127.0.0.1:5000/permissions/get-user-permissions', {
       method: 'GET',
@@ -485,7 +508,7 @@ const Permissions: React.FC = () => {
                     Group
                     </a>
                 </nav>
-          <div className="content">
+          <div className="permission-content">
             <section id="users" className="main">
               <div className="permissions-table-container">
                 <table className="permissions-table">
@@ -524,39 +547,45 @@ const Permissions: React.FC = () => {
             </section>
             
             <section id="groups" className="main">
-              <div className="permissions-table-container">                
-                <table className="permissions-table">
-                  <thead className="permissions-table-head">
-                    <tr>
-                      <th>Name</th>
-                      <th>Permissions</th>
-                      <th>Users</th>
-                      <th>Edit Users</th>
-                      <th>Edit Group</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {groups.map((group) => (
-                      <tr key={group.name}>
-                        <td>{group.name}</td>
-                        <td>
-                          <ul className="group-permissions-list">
-                           {group.permissions.map((permission,index)=>
-                            <li className="green-li" key={index}>{permission} </li>
-                            )}
-                          </ul>
-                        </td>
-                        <td>{group.members.join(', ')}</td>
-                        <td>
-                        <button className="permissions-edit-button" onClick={() => toggleEditUsersOverlay(group)}>Edit Users</button>
-                        </td>
-                        <td>
-                          <button className="permissions-edit-button" onClick={() => toggleModal(group)}>Edit Group</button>
-                        </td>
+              <div className="permissions-table-container">
+                <div className="internal-permission-table-scroller">             
+                  <table className="permissions-table">
+                    <thead className="permissions-table-head">
+                      <tr>
+                        <th>Name</th>
+                        <th>Permissions</th>
+                        <th>Users</th>
+                        <th>Edit Users</th>
+                        <th>Edit Group</th>
+                        <th>Delete</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {groups.map((group) => (
+                        <tr key={group.name}>
+                          <td>{group.name}</td>
+                          <td>
+                            <ul className="group-permissions-list">
+                            {group.permissions.map((permission,index)=>
+                              <li className="green-li-group" key={index}>{permission} </li>
+                              )}
+                            </ul>
+                          </td>
+                          <td>{group.members.join(', ')}</td>
+                          <td>
+                          <button className="permissions-edit-button" onClick={() => toggleEditUsersOverlay(group)}>Edit Users</button>
+                          </td>
+                          <td>
+                            <button className="permissions-edit-button" onClick={() => toggleModal(group)}>Edit Group</button>
+                          </td>
+                          <td>
+                            <button className="permissions-edit-button" onClick={() => deleteGroup(group.name)}>Delete</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>   
                 <div className="create-group-btn-container">
                   <button className="permissions-create-button" onClick={() => toggleModal()}>Create A Group</button>
                 </div>

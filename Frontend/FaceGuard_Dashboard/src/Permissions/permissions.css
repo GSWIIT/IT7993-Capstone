@@ -17,7 +17,7 @@
   text-align: center;
   background-color: white;
   border: 50%;
-  height: 60%;
+  height: 70%;
   width: 85%;
   border-radius: 20px;
   z-index: 500;
@@ -64,18 +64,18 @@
 .main{
   color: black;
   padding-top: 3%;
-  padding-bottom: 50%;
+  padding-bottom: 48%;
 }
 .major > h2{
   color: rgba(18,166,159,255);
   margin-bottom: 3%;
 }
-.content{
+.permission-content{
     
   position: fixed;
   margin-top: 0;
   margin-bottom: 50%;
-  overflow-y: hidden;
+  overflow-y: scroll;
   overflow-x:hidden;
   max-height: 60%;
   width: 85%;
@@ -85,11 +85,16 @@
 .permissions-table-container {
   width: 100%;
   overflow-x: auto;
-}
 
+}
+.internal-permission-table-scroller{
+  overflow-y: scroll;
+  height: 100%;
+}
 table {
   width: 100%;
   border-collapse: collapse;
+  height:90%;
 }
 
 thead {
@@ -288,7 +293,7 @@ th, td {
   z-index: -1; 
 }
 .create-group-btn-container{
-  margin-top: 3%;
+
 }
 .permissions-display-container{
   margin-top: 3%;
@@ -300,6 +305,15 @@ th, td {
 }
 
 .green-li{
+  list-style-type: none;
+  display: inline-block;
+  padding: 10px;
+  margin: 10px;
+  color: green;
+  border: 1px solid green;
+  border-radius: 5px;
+}
+.green-li-group{
   list-style-type: none;
   display: inline-block;
   padding: 10px;
