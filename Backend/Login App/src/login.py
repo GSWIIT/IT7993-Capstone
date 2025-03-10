@@ -196,18 +196,18 @@ def signup():
     for face in face_image_data:
         face_hash_array.append(face["hash"])
 
+    #get the current date in YYYY_MM_DD format, used for creation date of account
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    current_date = str(current_date)
+
     print("Estimating gas...")
     #estimate the cost of the ethereum transaction by predicting gas
-    estimated_gas = contract.functions.registerUser(username, password, face_hash_array, "testing_GUID").estimate_gas({"from": owner_address})
+    estimated_gas = contract.functions.registerUser(username, password, face_hash_array, current_date).estimate_gas({"from": owner_address})
 
     # Get the suggested gas price
     gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
     max_priority_fee = w3.to_wei("2", "gwei")  # Priority fee (adjust based on congestion)
     max_fee_per_gas = gas_price + max_priority_fee
-
-    #get the current date in YYYY_MM_DD format, used for creation date of account
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    current_date = str(current_date)
 
     #register user (use estimated gas & add an extra 50000 buffer to make sure transaction goes through)
     tx = contract.functions.registerUser(
@@ -233,7 +233,7 @@ def signup():
     if receipt.status == 1:
         print(f"Transaction successful! Block: {receipt.blockNumber}")
         print("Waiting a few more seconds...")
-        time.sleep(15)
+        time.sleep(3)
 
         print("Checking to see if user exists now...")
         user_obj = contract.functions.getUser(username).call()

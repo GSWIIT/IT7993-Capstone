@@ -36,6 +36,7 @@ contract FaceGuard {
     event UserAddedToGroup(string username, string groupName);
     event UserRemovedFromGroup(string username, string groupName);
     event GroupPermissionsUpdated(string groupName, string[] permissions);
+    event GroupNameUpdated(string originalGroupName, string newGroupName);
     event GroupRemoved(string groupName);
 
     modifier onlyOwner() {
@@ -79,12 +80,12 @@ contract FaceGuard {
     function registerUser(string memory username, string memory passwordHash, string[] memory initialFaceHashes, string memory creationDate) public onlyOwner {
         users[username] = User(username, passwordHash, initialFaceHashes, creationDate, creationDate, false, false, true);
         allUsernames.push(username);
-        addUserToGroup(username, "Users");
+        addUserToGroup("Users", username);
         emit UserRegistered(username);
 
         //if this is the very first user in the smart contract, we will also add them to the administrators group.
         if (allUsernames.length == 1) {
-            addUserToGroup(username, "Administrators");
+            addUserToGroup("Administrators", username);
         }
     }
 
@@ -134,7 +135,7 @@ contract FaceGuard {
         emit GroupCreated(groupName, permissions);
     }
 
-    function addUserToGroup(string memory username, string memory groupName) public onlyOwner {
+    function addUserToGroup(string memory groupName, string memory username) public onlyOwner {
         require(bytes(groups[groupName].name).length > 0, "Group does not exist");
         require(bytes(users[username].username).length > 0, "User does not exist");
 
@@ -142,7 +143,7 @@ contract FaceGuard {
         emit UserAddedToGroup(username, groupName);
     }
 
-    function removeUserFromGroup(string memory username, string memory groupName) public onlyOwner {
+    function removeUserFromGroup(string memory groupName, string memory username) public onlyOwner {
         require(bytes(groups[groupName].name).length > 0, "Group does not exist");
         require(bytes(users[username].username).length > 0, "User does not exist");
 
@@ -219,6 +220,43 @@ contract FaceGuard {
         require(bytes(groups[groupName].name).length > 0, "Group does not exist");
         Group memory group = groups[groupName];
         return (group.name, group.permissions, group.members);
+    }
+
+    function updateGroup(string memory originalGroupName, string memory newGroupName, string[] memory newPermissions) public onlyOwner {
+        require(bytes(groups[originalGroupName].name).length > 0, "Group does not exist");
+
+        // Define the core groups
+        string[4] memory coreGroups = ["Administrators", "Users", "Group Managers", "User Managers"];
+        
+        // Check if the groupName is in the core groups
+        for (uint i = 0; i < coreGroups.length; i++) {
+            require(keccak256(abi.encodePacked(originalGroupName)) != keccak256(abi.encodePacked(coreGroups[i])),
+                    "Modifying core group permissions is not allowed");
+        }
+
+        setGroupPermissions(originalGroupName, newPermissions);
+
+        if(keccak256(abi.encodePacked(originalGroupName)) != keccak256(abi.encodePacked(newGroupName)))
+        {
+            //move group to new mapping name, copying it's contents
+            groups[newGroupName] = groups[originalGroupName];
+
+            // Update the name inside the struct
+            groups[newGroupName].name = newGroupName;
+
+            // Delete the old mapping entry, so the old group name can be reused.
+            delete groups[originalGroupName];
+
+            // Update the allGroupNames array
+            for (uint i = 0; i < allGroupNames.length; i++) {
+                if (keccak256(abi.encodePacked(allGroupNames[i])) == keccak256(abi.encodePacked(originalGroupName))) {
+                    allGroupNames[i] = newGroupName; // Replace old name with new name
+                    break; // Stop looping after finding the match
+                }
+            }
+
+            emit GroupNameUpdated(originalGroupName, newGroupName);
+        }
     }
 
     function setGroupPermissions(string memory groupName, string[] memory groupPermissions) public onlyOwner returns (string memory) {

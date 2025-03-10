@@ -307,3 +307,121 @@ li{
   border: 1px solid green;
   border-radius: 5px;
 }
+
+/* Overlay styling */
+.permissions_edit_group_users_overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.permissions_edit_group_users_overlay_content {
+  background: white;
+  padding: 20px;
+  width: 400px;
+  border-radius: 8px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.permissions_edit_group_users_overlay_content h2 {
+  margin-bottom: 15px;
+}
+
+/* Table styling */
+.permissions_edit_group_users_user_table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 15px;
+}
+
+.permissions_edit_group_users_user_table th, 
+.permissions_edit_group_users_user_table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.permissions_edit_group_users_user_table th {
+  background-color: #f2f2f2;
+}
+
+/* Delete button styling */
+.permissions_edit_group_users_delete_user {
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.permissions_edit_group_users_delete_user:hover {
+  background-color: #cc0000;
+}
+
+/* Add user input and button */
+.permissions_edit_group_users_add_user_container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.permissions_edit_group_users_add_user_container input {
+  flex-grow: 1;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.permissions_edit_group_users_add_user_button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.permissions_edit_group_users_add_user_button:hover {
+  background-color: #218838;
+}
+
+/* Submit and Cancel buttons */
+.permissions_edit_group_users_overlay_buttons {
+  display: flex;
+  justify-content: space-between;
+}
+
+.permissions_edit_group_users_submit_button, 
+.permissions_edit_group_users_cancel_button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.permissions_edit_group_users_submit_button {
+  background-color: #007bff;
+  color: white;
+}
+
+.permissions_edit_group_users_submit_button:hover {
+  background-color: #0056b3;
+}
+
+.permissions_edit_group_users_cancel_button {
+  background-color: #6c757d;
+  color: white;
+}
+
+.permissions_edit_group_users_cancel_button:hover {
+  background-color: #5a6268;
+}
