@@ -231,7 +231,7 @@ th, td {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 3000;
 }
 
 .server-message-box {
@@ -240,6 +240,7 @@ th, td {
   border-radius: 10px;
   text-align: center;
   min-width: 300px;
+  z-index: 3000;
 }
 
 .loading-spinner {
@@ -298,7 +299,7 @@ th, td {
   font-size: 1rem;
 }
 
-li{
+.green-li{
   list-style-type: none;
   display: inline-block;
   padding: 10px;

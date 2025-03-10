@@ -509,7 +509,7 @@ const LoginPage: React.FC = () => {
                   </div>
                 )}
                 {showLoadingPromptOverlay && (
-                  <div id="loadingPromptOverlay" style={{ display: 'block' }}>
+                  <div id="loadingPromptOverlay" className="prompt-overlay">
                     <img
                       id="loadingPromptImage"
                       src={

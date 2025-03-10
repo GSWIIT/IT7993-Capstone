@@ -345,12 +345,13 @@ const Permissions: React.FC = () => {
         >
           Groups & Permissions
         </a>
+        <Link to="/about">
         <a
           className="About"
         >
           About Us
         </a>
-      
+        </Link>
         <a onClick={onLogOutClick}>Log Out</a>
       </nav>
      </div>
@@ -514,7 +515,7 @@ const Permissions: React.FC = () => {
                   <p className="user-permissions">Your Current Permissions:</p>
                   <ul className="user-permissions-list">
                     {userPermissions.map((permission, index) => (
-                      <li key={index}>{permission}</li>
+                      <li className="green-li" key={index}>{permission}</li>
                     ))}
                   </ul>
                 </div>
@@ -540,7 +541,7 @@ const Permissions: React.FC = () => {
                         <td>
                           <ul className="group-permissions-list">
                            {group.permissions.map((permission,index)=>
-                            <li key={index}>{permission} </li>
+                            <li className="green-li" key={index}>{permission} </li>
                             )}
                           </ul>
                         </td>
