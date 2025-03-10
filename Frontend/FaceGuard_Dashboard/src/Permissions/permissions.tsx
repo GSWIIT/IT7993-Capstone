@@ -371,10 +371,10 @@ const Permissions: React.FC = () => {
         </div>
         <div className="permissions-container">
         {showEditUsersOverlay && selectedGroup && (
-          <div className="permissions_edit_group_users_overlay">
-            <div className="permissions_edit_group_users_overlay_content">
+          <div className="modal-overlay">
+            <div className="modal-content">
               <h2>Edit Users: {selectedGroup.name}</h2>
-              <table className="permissions_edit_group_users_user_table">
+              <table className="permissions-table">
                 <thead>
                   <tr>
                     <th>Username</th>
@@ -386,7 +386,7 @@ const Permissions: React.FC = () => {
                     <tr key={index}>
                       <td>{username}</td>
                       <td>
-                        <button className="permissions_edit_group_users_delete_user" onClick={() => handleDeleteUser(username)}>Delete</button>
+                        <button className="delete-permission" onClick={() => handleDeleteUser(username)}>Delete</button>
                       </td>
                     </tr>
                   ))}
@@ -399,9 +399,10 @@ const Permissions: React.FC = () => {
                   value={newUser}
                   onChange={(e) => setNewUser(e.target.value)}
                 />
-                <button onClick={handleAddUser} className="permissions_edit_group_users_add_user_button">Add</button>
+                
               </div>
-              <div className="permissions_edit_group_users_overlay_buttons">
+              <div className="modal-buttons">
+              <button onClick={handleAddUser} className="permissions_edit_group_users_add_user_button">Add</button>
                 <button className="permissions_edit_group_users_submit_button" onClick={() => toggleEditUsersOverlay()}>Done</button>
               </div>
             </div>

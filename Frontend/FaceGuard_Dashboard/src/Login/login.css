@@ -138,11 +138,13 @@
     padding: 30px;
     border-radius: 10px;
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    text-align: center;
   
 }
 .loading-box-title{
     color: rgba(18,166,159,255);
     font-weight: bold;
+    text-align: center;
 }
 /* Loading image */
 .loading-image {
