@@ -11,6 +11,8 @@ contract FaceGuard {
         bool faceReenrollmentRequired;
         bool passwordChangeRequired;
         bool enabled;
+        string email;
+        string fullName;
     }
 
     struct Group {
@@ -30,6 +32,8 @@ contract FaceGuard {
     event PasswordUpdated(string username);
     event PasswordChangeRequired(string username);
     event FaceHashUpdated(string username);
+    event UserEmailUpdated(string username, string email);
+    event UserFullNameUpdated(string username, string fullName);
     event PermissionsUpdated(string username);
     event UserToggled(string username, bool enabled);
     event GroupCreated(string groupName, string[] permissions);
@@ -78,7 +82,7 @@ contract FaceGuard {
     }
 
     function registerUser(string memory username, string memory passwordHash, string[] memory initialFaceHashes, string memory creationDate) public onlyOwner {
-        users[username] = User(username, passwordHash, initialFaceHashes, creationDate, creationDate, false, false, true);
+        users[username] = User(username, passwordHash, initialFaceHashes, creationDate, creationDate, false, false, true, "", "");
         allUsernames.push(username);
         addUserToGroup("Users", username);
         emit UserRegistered(username);
@@ -104,6 +108,16 @@ contract FaceGuard {
         emit FaceHashUpdated(username);
     }
 
+    function updateUserEmail(string memory username, string memory newEmail) public onlyOwner {
+        users[username].email = newEmail;
+        emit UserEmailUpdated(username, newEmail);
+    }
+
+    function updateUserFullName(string memory username, string memory newFullName) public onlyOwner {
+        users[username].fullName = newFullName;
+        emit UserFullNameUpdated(username, newFullName);
+    }
+
     function toggleUser(string memory username) public onlyOwner {
         users[username].enabled = !users[username].enabled;
         emit UserToggled(username, users[username].enabled);
@@ -119,9 +133,9 @@ contract FaceGuard {
         return bytes(users[username].username).length > 0;
     }
 
-    function getUser(string memory username) public view returns (string memory, string memory, string[] memory, string memory, string memory, bool, bool) {
+    function getUser(string memory username) public view returns (string memory, string memory, string[] memory, string memory, string memory, bool, bool, string memory, string memory) {
         User memory user = users[username];
-        return (user.username, user.passwordHash, user.faceHashes, user.accountCreationDate, user.lastEditDate, user.faceReenrollmentRequired, user.enabled);
+        return (user.username, user.passwordHash, user.faceHashes, user.accountCreationDate, user.lastEditDate, user.faceReenrollmentRequired, user.enabled, user.email, user.fullName);
     }
 
     function getAllUsernames() public view returns (string[] memory) {

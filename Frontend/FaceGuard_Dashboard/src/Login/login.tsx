@@ -1,7 +1,11 @@
 import React, { useRef, useState } from 'react';
+import { useNavigate } from "react-router-dom";
 import './login.css';
 import backgroundvideo from "../assets/login.mp4";
+
 const LoginPage: React.FC = () => {
+  const pageNavigator = useNavigate();
+
   // Refs for webcam and canvas elements
   const videoRef = useRef<HTMLVideoElement>(null!);
   const canvas1Ref = useRef<HTMLCanvasElement>(null!);
@@ -301,7 +305,7 @@ const LoginPage: React.FC = () => {
                 'Face detected! Two Factor authentication successful.',
                 true
               );
-              window.location.href = '/home';
+              pageNavigator('/home');
             } else {
               setTwoFAErrorMessage(result.reason);
               setTimeout(capture2FAFrames, 50);

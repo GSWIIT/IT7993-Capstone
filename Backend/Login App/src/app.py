@@ -3,6 +3,7 @@ from flask_session import Session
 import logging
 from login import login_bp  # Import the blueprint from login.py
 from permissions import permissions_bp
+from account import account_bp
 from flask_cors import CORS
 from datetime import timedelta
 
@@ -35,6 +36,7 @@ logger = logging.getLogger(__name__)
 # Register Blueprints
 app.register_blueprint(login_bp, url_prefix='/auth')  # Prefix all login routes with /auth
 app.register_blueprint(permissions_bp, url_prefix='/permissions')  # Prefix all permission routes with /permissions
+app.register_blueprint(account_bp, url_prefix='/account')
     
 if __name__ == '__main__':
     app.run(debug=True)
