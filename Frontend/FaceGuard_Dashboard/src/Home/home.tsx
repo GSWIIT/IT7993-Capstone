@@ -90,7 +90,7 @@ const home: React.FC = () => {
                 loop
             >
                 <source src={backgroundvideo} type="video/mp4" />
-                Your browser does not support HTML5 video.
+
             </video>
 
             <div className="content-home">

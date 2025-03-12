@@ -64,7 +64,7 @@
 .main{
   color: black;
   padding-top: 3%;
-  padding-bottom: 48%;
+  padding-bottom: 47%;
 }
 .major > h2{
   color: rgba(18,166,159,255);
@@ -75,7 +75,7 @@
   position: fixed;
   margin-top: 0;
   margin-bottom: 50%;
-  overflow-y: scroll;
+  overflow-y: hidden;
   overflow-x:hidden;
   max-height: 60%;
   width: 85%;
@@ -83,28 +83,25 @@
 
   
 .permissions-table-container {
-  width: 100%;
-  overflow-x: auto;
-
+  overflow-y: scroll;
+  height: 300px;
+}
+.permissions-table-container thead tr{
+  position: sticky;
+  top: 0;
+  background-color: #f4f4f4;
 }
 .internal-permission-table-scroller{
   overflow-y: scroll;
-  height: 100%;
+  height: 300px;
 }
 table {
   width: 100%;
   border-collapse: collapse;
-  height:90%;
 }
 
 thead {
   background-color: #f4f4f4;
-}
-
-th, td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: left;
 }
 
 .permissions-edit-button {
@@ -127,6 +124,9 @@ th, td {
   padding: 5px 10px;
   cursor: pointer;
   border-radius: 10px;
+}
+.create-group-btn-container{
+  margin-bottom: 1%;
 }
 .modal-overlay {
   position: fixed;
@@ -178,6 +178,12 @@ th, td {
 }
 .permissions-table-head{
   color: black;
+
+}
+.internal-permission-table-scroller thead th{
+  position: sticky;
+  top: 0;
+  background-color: #f4f4f4;
 }
 .permissions-table th, .permissions-table td {
   border: 1px solid #ddd;
@@ -292,11 +298,9 @@ th, td {
   object-fit: cover;
   z-index: -1; 
 }
-.create-group-btn-container{
 
-}
 .permissions-display-container{
-  margin-top: 3%;
+  margin-bottom: 1%;
 }
 
 .user-permissions {
@@ -326,4 +330,42 @@ th, td {
   align-items: center;
   margin-left: 50px;
   margin-right: auto;
+}
+.detete-btn-icon{
+  background-color: transparent;
+  border: none;
+}
+.detete-btn-icon:hover{
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  box-shadow: none;
+  border-radius: 0;
+  border-bottom: 2px solid #f44336;
+}
+.edit-btn-icon{
+  background-color: transparent;
+  border: none;
+}
+.edit-btn-icon:hover{
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  box-shadow: none;
+  border-radius: 0;
+  border-bottom: 2px solid #3a99dd;
+}
+.btn-icon{
+  height: 25px;
+
+}
+.user-icon{
+  margin-left: 0px;
+}
+.ul-user-icon{
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  margin-left: 5px;
 }
