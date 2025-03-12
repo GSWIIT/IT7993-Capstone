@@ -566,12 +566,12 @@ const Permissions: React.FC = () => {
                   <table className="permissions-table">
                     <thead className="permissions-table-head">
                       <tr>
-                        <th>Name</th>
-                        <th>Permissions</th>
-                        <th>Users</th>
-                        <th>Edit Users</th>
-                        <th>Edit Group</th>
-                        <th>Delete</th>
+                        <th className="sticky">Name</th>
+                        <th className="sticky">Permissions</th>
+                        <th className="sticky">Users</th>
+                        <th className="sticky">Edit Users</th>
+                        <th className="sticky">Edit Group</th>
+                        <th className="sticky">Delete</th>
                       </tr>
                     </thead>
                     <tbody>

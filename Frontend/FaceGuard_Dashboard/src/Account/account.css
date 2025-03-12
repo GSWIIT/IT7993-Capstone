@@ -119,10 +119,10 @@ button:hover{
     background-color: rgb(235, 235, 235);
     border-top-left-radius: 20px;
     border-top-right-radius: 20px;
-    position: sticky; /* Make the navbar sticky */
-    top: 100px; /* Adjust position if necessary */
-    width: 100%; /* Ensure it spans the full width */
-    z-index: 1000; /* Ensure it stays on top */
+    position: sticky; 
+    top: 100px; 
+    width: 100%; 
+    z-index: 1000;
 }
 .account-navbar > a{
 

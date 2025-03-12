@@ -86,7 +86,11 @@
   overflow-y: scroll;
   height: 300px;
 }
-
+.permissions-table-container thead tr{
+  position: sticky;
+  top: 0;
+  background-color: #f4f4f4;
+}
 .internal-permission-table-scroller{
   overflow-y: scroll;
   height: 300px;
@@ -176,8 +180,10 @@ thead {
   color: black;
 
 }
-.permissions-table-head > tr > th{
- 
+.internal-permission-table-scroller thead th{
+  position: sticky;
+  top: 0;
+  background-color: #f4f4f4;
 }
 .permissions-table th, .permissions-table td {
   border: 1px solid #ddd;
