@@ -409,7 +409,7 @@ const Permissions: React.FC = () => {
                     <tr key={index}>
                       <td>{username}</td>
                       <td>
-                        <button className="delete-permission" onClick={() => handleDeleteUser(username)}>Delete</button>
+                        <button className="detete-btn-icon" onClick={() => handleDeleteUser(username)}><img src="/src/assets/delete_user.png"/></button>
                       </td>
                     </tr>
                   ))}
@@ -462,7 +462,7 @@ const Permissions: React.FC = () => {
                       <tr key={index}>
                         <td>{permission}</td>
                         <td>
-                          <button className="delete-permission" onClick={() => handleDeletePermission(permission)}>Delete</button>
+                          <button className="detete-btn-icon" onClick={() => handleDeletePermission(permission)}><img  src="/src/assets/delete.png"/></button>
                         </td>
                       </tr>
                     ))}
@@ -525,7 +525,12 @@ const Permissions: React.FC = () => {
                   <tbody>
                     {users.map((user) => (
                       <tr key={user.username}>
-                        <td>{user.username}</td>
+                        <td>
+                          <ul className="ul-user-icon" >
+                            <li ><img src="src/assets/user.png"/></li>
+                            <li >{user.username}</li>
+                          </ul>
+                        </td>
                         <td>{`${user.faceHashes}`}</td>
                         <td>{`${user.faceReenrollmentRequired}`}</td>
                         <td>{user.accountCreationDate}</td>
@@ -548,6 +553,11 @@ const Permissions: React.FC = () => {
             
             <section id="groups" className="main">
               <div className="permissions-table-container">
+
+                <div className="create-group-btn-container">
+                  <button className="permissions-create-button" onClick={() => toggleModal()}>Create A Group</button>
+                </div>
+
                 <div className="internal-permission-table-scroller">             
                   <table className="permissions-table">
                     <thead className="permissions-table-head">
@@ -579,16 +589,14 @@ const Permissions: React.FC = () => {
                             <button className="permissions-edit-button" onClick={() => toggleModal(group)}>Edit Group</button>
                           </td>
                           <td>
-                            <button className="permissions-edit-button" onClick={() => deleteGroup(group.name)}>Delete</button>
+                            <button className="detete-btn-icon" onClick={() => deleteGroup(group.name)}><img className="btn-icon" src="/src/assets/delete.png"/></button>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>   
-                <div className="create-group-btn-container">
-                  <button className="permissions-create-button" onClick={() => toggleModal()}>Create A Group</button>
-                </div>
+
               </div>
             </section>
           
