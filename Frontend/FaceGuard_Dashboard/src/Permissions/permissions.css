@@ -333,11 +333,25 @@ thead {
   background-color: transparent;
   border: none;
   cursor: pointer;
-  border-radius: 30%;
-
+  box-shadow: none;
+  border-radius: 0;
+  border-bottom: 2px solid #f44336;
+}
+.edit-btn-icon{
+  background-color: transparent;
+  border: none;
+}
+.edit-btn-icon:hover{
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  box-shadow: none;
+  border-radius: 0;
+  border-bottom: 2px solid #3a99dd;
 }
 .btn-icon{
   height: 25px;
+
 }
 .user-icon{
   margin-left: 0px;

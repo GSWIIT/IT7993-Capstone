@@ -587,10 +587,10 @@ const Permissions: React.FC = () => {
                           </td>
                           <td>{group.members.join(', ')}</td>
                           <td>
-                          <button className="detete-btn-icon" onClick={() => toggleEditUsersOverlay(group)}><img className="btn-icon" src="/src/assets/edit.png"/></button>
+                          <button className="edit-btn-icon" onClick={() => toggleEditUsersOverlay(group)}><img className="btn-icon" src="/src/assets/edit.png"/></button>
                           </td>
                           <td>
-                            <button className="detete-btn-icon" onClick={() => toggleModal(group)}><img className="btn-icon" src="/src/assets/edit.png"/></button>
+                            <button className="edit-btn-icon" onClick={() => toggleModal(group)}><img className="btn-icon" src="/src/assets/edit.png"/></button>
                           </td>
                           <td>
                             <button className="detete-btn-icon" onClick={() => deleteGroup(group.name)}><img className="btn-icon" src="/src/assets/delete.png"/></button>
