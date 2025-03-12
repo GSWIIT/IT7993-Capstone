@@ -1,6 +1,6 @@
 .permissions-title{
   margin: 5rem 0 5rem 0;
-  margin-top: 10rem;
+  margin-top: 9rem;
   margin-bottom: 1rem;
   align-items: center;
   position: relative; /* Remove fixed positioning */
@@ -17,7 +17,7 @@
   text-align: center;
   background-color: white;
   border: 50%;
-  height: 70%;
+  height: 65%;
   width: 85%;
   border-radius: 20px;
   z-index: 500;
@@ -68,7 +68,7 @@
 }
 .major > h2{
   color: rgba(18,166,159,255);
-  margin-bottom: 3%;
+  margin-bottom: 1%;
 }
 .permission-content{
     
@@ -84,7 +84,7 @@
   
 .permissions-table-container {
   overflow-y: scroll;
-  height: 300px;
+  height: 280px;
 }
 .permissions-table-container thead tr{
   position: sticky;
@@ -93,7 +93,7 @@
 }
 .internal-permission-table-scroller{
   overflow-y: scroll;
-  height: 300px;
+  height: 320px;
 }
 table {
   width: 100%;

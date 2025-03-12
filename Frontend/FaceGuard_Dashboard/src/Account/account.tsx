@@ -47,7 +47,7 @@ const account: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'facereg' | 'delete'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'facereg' | 'delete' | 'activities'>('profile');
 
   const [logs, setLogs] = useState<Logs[]>([]);
 
@@ -259,7 +259,7 @@ const account: React.FC = () => {
       })
   };
 
-  const handleScrollToSection = (id: 'profile' | 'password' | 'facereg' | 'delete') => {
+  const handleScrollToSection = (id: 'profile' | 'password' | 'facereg' | 'delete'|'activities') => {
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
@@ -534,6 +534,12 @@ const account: React.FC = () => {
                     Facial Recognition
                     </a>
                     <a
+                        className={`activities ${activeTab === 'activities' ? 'active' : ''}`}
+                        onClick={() => handleScrollToSection("activities")}
+                    >
+                    Activities
+                    </a>
+                    <a
                         className={`delete ${activeTab === 'delete' ? 'active' : ''}`}
                         onClick={() => handleScrollToSection("delete")}
                     >
@@ -579,11 +585,11 @@ const account: React.FC = () => {
                     <button className="facereg-btn" onClick={displayCapturePhotoOverlay}>Get Started!</button>
 							</section> 
 
-               <section id="delete" className="main">
+               <section id="activities" className="main">
                     <header className="major">
-                      <h2>Delete Your Account</h2>
+                      <h2>Account Activities</h2>
                     </header>
-                    <div>
+                    <div className="activities-table-container">
                     <table className="permissions-table">
                       <thead className="permissions-table-head">
                         <tr>
@@ -603,11 +609,19 @@ const account: React.FC = () => {
                       </tbody>
                     </table>
                     </div>
-                    <p>Are you sure you want to delete your account? This action cannot be undone.</p>
-                    <br></br>
-                    <button className="delete-btn">Delete Account</button>
+                   
 							</section>  
 
+              <section id="delete" className="main">
+               <header className="major">
+                      <h2>Delete Your Account</h2>
+                </header>
+                <p>Are you sure you want to delete your account? This action cannot be undone.</p>
+                    <br></br>
+                    <button className="delete-btn">Delete Account</button>
+              </section>
+              
+                            
 
               </div>
             </div>

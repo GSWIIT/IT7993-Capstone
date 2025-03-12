@@ -109,7 +109,7 @@ button:hover{
     text-align: center;
     background-color: white;
     border: 50%;
-    height: 60%;
+    height: 65%;
     width: 85%;
     border-radius: 20px;
 
@@ -210,3 +210,12 @@ label{
 .major > h2{
     color: rgba(18,166,159,255);
 }
+.activities-table-container {
+    overflow-y: scroll;
+    height: 320px;
+  }
+  .activities-table-container thead tr{
+    position: sticky;
+    top: 0;
+    background-color: #f4f4f4;
+  }
