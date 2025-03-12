@@ -4,9 +4,10 @@ import os
 import json
 from login import login_required
 from functools import wraps
-from blockchain_connection import get_contract, get_w3_object, get_owner_address, get_private_key
+from blockchain_connection import get_contract, get_w3_object, get_owner_address, get_private_key, CONTRACT_ADDRESS
 import time
 from login import hash_password, create_lsh_from_image
+from hexbytes import HexBytes  # Import this for type checking
 
 account_bp = Blueprint('account', __name__, template_folder='templates')
 
@@ -14,6 +15,12 @@ contract = get_contract()
 w3 = get_w3_object()
 owner_address = get_owner_address()
 PRIVATE_KEY = get_private_key()
+
+class HexJsonEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, HexBytes):
+            return obj.hex()
+        return super().default(obj)
 
 #protected with login_required decorator function
 @account_bp.route('/get-self', methods=['GET'])
@@ -244,3 +251,64 @@ def update_face_hashes():
             return jsonify ({"success": False, "reason": "There was an issue writing to the blockchain..."})
     else:
         return jsonify ({"success": False, "reason": "User does not have permission to peform this action!"})
+    
+def convert_attr_dict(obj):
+    if isinstance(obj, list):
+        return [convert_attr_dict(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {key: convert_attr_dict(value) for key, value in obj.items()}
+    elif isinstance(obj, bytes):  
+        return HexBytes.to_hex(obj)  # Convert bytes to hex string for JSON compatibility
+    return obj  # Return unchanged if not AttributeDict, list, or dict
+
+#protected with login_required decorator function
+@account_bp.route('/get-user-events', methods=['GET'])
+@login_required
+def get_user_events():
+
+    #list events to check for on the blockchain
+    events = [
+        contract.events.UserRegistered,
+        contract.events.PasswordUpdated,
+        contract.events.PasswordChangeRequired,
+        contract.events.FaceHashUpdated,
+        contract.events.UserEmailUpdated,
+        contract.events.UserFullNameUpdated,
+        contract.events.UserToggled,
+        contract.events.UserAddedToGroup,
+        contract.events.UserRemovedFromGroup
+    ]
+
+    # Convert the username to a topic (if indexed)
+    username = session["username"]
+    username_topic = w3.keccak(text=username).hex()
+    print(username_topic)
+
+    signature = Web3.keccak(text="UserRegistered(string)").hex()
+    print(signature)
+
+    # Collect all user's events into an array
+    all_events = []
+
+    for event in events:
+        event_obj = event()
+
+        signature = Web3.keccak(text=event.signature).hex()
+        print(signature)
+
+        logs = w3.eth.get_logs({
+            'fromBlock': 'earliest',
+            'toBlock': 'latest',
+            'address': contract.address,
+            'topics': ["0x" + signature, "0x" + username_topic]  # Must match indexed parameters
+        })
+
+        for log in logs:
+            decoded_event = event_obj.process_log(log)
+            all_events.append(decoded_event)
+
+    json_result = ([w3.to_json(log) for log in all_events])
+
+    print(json_result)
+
+    return jsonify ({"success": True, "reason": "Obtained user events successfully.", "logs": json_result})

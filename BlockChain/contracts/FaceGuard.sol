@@ -28,20 +28,20 @@ contract FaceGuard {
 
     address private owner;
 
-    event UserRegistered(string username);
-    event PasswordUpdated(string username);
-    event PasswordChangeRequired(string username);
-    event FaceHashUpdated(string username);
-    event UserEmailUpdated(string username, string email);
-    event UserFullNameUpdated(string username, string fullName);
-    event PermissionsUpdated(string username);
-    event UserToggled(string username, bool enabled);
-    event GroupCreated(string groupName, string[] permissions);
-    event UserAddedToGroup(string username, string groupName);
-    event UserRemovedFromGroup(string username, string groupName);
-    event GroupPermissionsUpdated(string groupName, string[] permissions);
-    event GroupNameUpdated(string originalGroupName, string newGroupName);
-    event GroupRemoved(string groupName);
+    event UserRegistered(string indexed username);
+    event PasswordUpdated(string indexed username);
+    event PasswordChangeRequired(string indexed username);
+    event FaceHashUpdated(string indexed username);
+    event UserEmailUpdated(string indexed username, string email);
+    event UserFullNameUpdated(string indexed username, string fullName);
+    event PermissionsUpdated(string indexed username);
+    event UserToggled(string indexed username, bool enabled);
+    event GroupCreated(string indexed groupName, string[] permissions);
+    event UserAddedToGroup(string indexed username, string groupName);
+    event UserRemovedFromGroup(string indexed username, string groupName);
+    event GroupPermissionsUpdated(string indexed groupName, string[] permissions);
+    event GroupNameUpdated(string indexed originalGroupName, string newGroupName);
+    event GroupRemoved(string indexed groupName);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only the contract owner can perform this action");

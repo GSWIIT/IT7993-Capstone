@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import "./permissions.css"
 import { Link } from "react-router-dom";
 import backgroundvideo from "../assets/backgroundvideo.mp4";
-interface Group {
 
+interface Group {
   name: string;
   permissions: string[];
   members: string[];

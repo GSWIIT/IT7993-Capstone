@@ -7,6 +7,14 @@ import { Link } from "react-router-dom";
 const account: React.FC = () => {
   const pageNavigator = useNavigate();
 
+  interface Logs {
+    logIndex: string;
+    event: string;
+    data: string;
+    args: string[];
+    timestamp: string;
+  }
+
   // Refs for webcam and canvas elements
   const videoRef = useRef<HTMLVideoElement>(null!);
   const canvas1Ref = useRef<HTMLCanvasElement>(null!);
@@ -40,6 +48,8 @@ const account: React.FC = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'facereg' | 'delete'>('profile');
+
+  const [logs, setLogs] = useState<Logs[]>([]);
 
   const checkSession = async () => {
     fetch('http://127.0.0.1:5000/auth/check-session', {
@@ -228,6 +238,27 @@ const account: React.FC = () => {
       })
   };
 
+  const onGetUserLogsClick = () => {
+    console.log("Getting user logs from blockchain...");
+    fetch('http://127.0.0.1:5000/account/get-user-events', {
+      method: 'GET',
+      credentials: "include"
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        console.log(result)
+        const logs = result.logs
+        
+        const listItems = [];
+        for (let i = 0; i < logs.length; i++)
+        {
+          listItems.push(JSON.parse(logs[i]))
+        }
+        setLogs(listItems)
+        console.log("Logs state:", listItems);
+      })
+  };
+
   const handleScrollToSection = (id: 'profile' | 'password' | 'facereg' | 'delete') => {
     const element = document.getElementById(id);
     if (element) {
@@ -334,6 +365,7 @@ const account: React.FC = () => {
     checkSession();
     handleScrollToSection("profile");
     getSelf();
+    onGetUserLogsClick();
   }, []);
 
   return (
@@ -352,7 +384,7 @@ const account: React.FC = () => {
             <a className="Account">Account Settings</a>
           </Link>
           <Link to="/permissions">
-            <a className="Groups">Groups & Permissions</a>
+            <a className="logs">logs & Permissions</a>
           </Link>
           <Link to="/about">
             <a className="About">About Us</a>
@@ -552,6 +584,26 @@ const account: React.FC = () => {
                     <header className="major">
                       <h2>Delete Your Account</h2>
                     </header>
+                    <div>
+                    <table className="permissions-table">
+                      <thead className="permissions-table-head">
+                        <tr>
+                          <th>Log Index</th>
+                          <th>Event</th>
+                          <th>Data</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {logs.map((log) => (
+                          <tr key={log.logIndex}>
+                            <td>{log.logIndex}</td>
+                            <td>{log.event}</td>
+                            <td>{log.args[0]}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    </div>
                     <p>Are you sure you want to delete your account? This action cannot be undone.</p>
                     <br></br>
                     <button className="delete-btn">Delete Account</button>

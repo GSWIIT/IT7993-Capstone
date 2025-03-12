@@ -420,3 +420,4 @@ def delete_group():
             return jsonify({"success": False, "reason": "Error encountered while writing to the blockchain..."})
     else:
         return jsonify({"success": False, "reason": "User does not have permission to perform this action!"})
+    
