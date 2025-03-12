@@ -54,7 +54,9 @@ def get_all_users():
                 "accountCreationDate": user[3],
                 "lastEditDate": user[4],
                 "faceReenrollmentRequired": user[5],
-                "enabled": user[6]
+                "enabled": user[6],
+                "fullName": user[7],
+                "email": user[8]
             })
 
     return jsonify({"success": True, "reason": "Users returned successfully based on permissions.", "array": all_users_array})
@@ -173,7 +175,7 @@ def create_group():
 
         # Get the suggested gas price
         gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
-        max_priority_fee = w3.to_wei("2", "gwei")  # Priority fee (adjust based on congestion)
+        max_priority_fee = w3.to_wei("4", "gwei")  # Priority fee (adjust based on congestion)
         max_fee_per_gas = gas_price + max_priority_fee
 
         tx = contract.functions.createGroup(groupName, groupPermissions).build_transaction({
@@ -229,7 +231,7 @@ def update_group():
 
         # Get the suggested gas price
         gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
-        max_priority_fee = w3.to_wei("2", "gwei")  # Priority fee (adjust based on congestion)
+        max_priority_fee = w3.to_wei("4", "gwei")  # Priority fee (adjust based on congestion)
         max_fee_per_gas = gas_price + max_priority_fee
 
         tx = contract.functions.updateGroup(originalGroupName, newGroupName, groupPermissions).build_transaction({
@@ -283,7 +285,7 @@ def add_user_to_group():
 
         # Get the suggested gas price
         gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
-        max_priority_fee = w3.to_wei("2", "gwei")  # Priority fee (adjust based on congestion)
+        max_priority_fee = w3.to_wei("4", "gwei")  # Priority fee (adjust based on congestion)
         max_fee_per_gas = gas_price + max_priority_fee
 
         tx = contract.functions.addUserToGroup(groupName, usernameToUpdate).build_transaction({
@@ -337,7 +339,7 @@ def remove_user_to_group():
 
         # Get the suggested gas price
         gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
-        max_priority_fee = w3.to_wei("2", "gwei")  # Priority fee (adjust based on congestion)
+        max_priority_fee = w3.to_wei("4", "gwei")  # Priority fee (adjust based on congestion)
         max_fee_per_gas = gas_price + max_priority_fee
 
         tx = contract.functions.removeUserFromGroup(groupName, usernameToUpdate).build_transaction({
@@ -389,7 +391,7 @@ def delete_group():
 
         # Get the suggested gas price
         gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
-        max_priority_fee = w3.to_wei("2", "gwei")  # Priority fee (adjust based on congestion)
+        max_priority_fee = w3.to_wei("4", "gwei")  # Priority fee (adjust based on congestion)
         max_fee_per_gas = gas_price + max_priority_fee
 
         tx = contract.functions.removeGroup(groupName).build_transaction({

@@ -124,6 +124,7 @@ def check_face_for_2FA():
 
     #finally, compare euclidean distance of three detected faces for similarity comparison.
     hamming_distance_limit = 8
+    frame_face_images = []
 
     for frameIndex, frameToScan in enumerate(frames):
         #need to make sure frame is not empty before trying to scan it
@@ -133,6 +134,7 @@ def check_face_for_2FA():
         frameEncoding = create_lsh_from_image(frameToScan)
         
         if frameEncoding["success"]:
+            frame_face_images.append(frameEncoding["preview"])
             print("Comparing face embeddings with frame " + str(frameIndex) + "...")
             for hashIndex, userHash in enumerate(user_obj[2]):
                 # Compute Euclidean distance
@@ -145,10 +147,10 @@ def check_face_for_2FA():
                     temporary_user_storage.pop()
                     session.clear()
                     session["username"] = username
-                    return jsonify({"success": True, "reason": "Face verified successfully. Login successful!"})
+                    return jsonify({"success": True, "reason": "Face verified successfully. Login successful!", "preview": frame_face_images})
     
-    temporary_user_storage.pop()
-    return jsonify({"success": False, "reason": "User's face not detected."})
+    #temporary_user_storage.pop()
+    return jsonify({"success": False, "reason": "User's face not detected.", "preview": frame_face_images})
 
 @login_bp.route('/usernamecheck', methods=['POST'])
 def check_sent_username():
@@ -299,17 +301,10 @@ def scan_image_for_face(img):
         #draw rectangle on image
         cv2.rectangle(img_copy, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
-        _, buffer = cv2.imencode('.png', img)
-        face_base64_img = base64.b64encode(buffer).decode('utf-8')
-
         _, buffer = cv2.imencode('.png', img_copy)
         face_preview_base64_img = base64.b64encode(buffer).decode('utf-8')
 
-        # Generate hash for the face from the original image
-        face_hash = perceptual_hash_from_base64(face_base64_img)
-        face_hash_string = str(face_hash)
-
-        return {"success": True, "reason": "OpenCV ran successfully on provided image.", "hash": face_hash, "hash_string": face_hash_string, "image": face_preview_base64_img}
+        return {"success": True, "reason": "OpenCV ran successfully on provided image.", "image": face_preview_base64_img}
     
 def create_lsh_from_image(img):
     #img is byte64 string, represents image
@@ -330,6 +325,15 @@ def create_lsh_from_image(img):
 
     print(f"Detected {len(faces)} face(s).")
 
+    for (x, y, w, h) in faces:
+        img_copy = img.copy()
+
+        #draw rectangle on image with OpenCV
+        cv2.rectangle(img_copy, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+        _, buffer = cv2.imencode('.png', img_copy)
+        face_preview_base64_img = base64.b64encode(buffer).decode('utf-8')
+
     # Get face encodings from the image
     encodings = face_recognition.face_encodings(img)
     if encodings:
@@ -337,11 +341,11 @@ def create_lsh_from_image(img):
         print("Face encoding obtained.")
     else:
         print("No face encoding found.")
-        return {"success": False, "reason": "No face encoding found."}
+        return {"success": False, "reason": "No face encoding found.", "preview": None}
 
     lsh_hash_obj = hash_face_encoding(face_encoding)
         
-    return {"success": True, "reason": "OpenCV ran successfully. Face encoding created and hashed successfully.", "hash": lsh_hash_obj, "encoding": lsh_hash_obj}
+    return {"success": True, "reason": "OpenCV ran successfully. Face encoding created and hashed successfully.", "hash": lsh_hash_obj, "preview": face_preview_base64_img}
     
 @login_bp.route('/checkface', methods=['POST'])
 def run_face_recognition():

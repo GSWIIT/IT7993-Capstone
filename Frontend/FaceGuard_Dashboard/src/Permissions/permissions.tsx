@@ -18,6 +18,8 @@ interface User {
   lastEditDate: string;
   assignedGroups: string;
   enabled: boolean;
+  email: string;
+  fullName: string;
 }
 
 const Permissions: React.FC = () => {
@@ -515,8 +517,8 @@ const Permissions: React.FC = () => {
                   <thead className="permissions-table-head">
                     <tr>
                       <th>Username</th>
-                      <th>Face Hashes</th>
-                      <th>Face Re-Enrollment Required</th>
+                      <th>Full Name</th>
+                      <th>Email</th>
                       <th>Account Creation Date</th>
                       <th>Last Edit Date</th>
                       <th>Enabled</th>
@@ -525,14 +527,9 @@ const Permissions: React.FC = () => {
                   <tbody>
                     {users.map((user) => (
                       <tr key={user.username}>
-                        <td>
-                          <ul className="ul-user-icon" >
-                            <li ><img src="src/assets/user.png"/></li>
-                            <li >{user.username}</li>
-                          </ul>
-                        </td>
-                        <td>{`${user.faceHashes}`}</td>
-                        <td>{`${user.faceReenrollmentRequired}`}</td>
+                        <td>{user.username}</td>
+                        <td>{user.email}</td>
+                        <td>{user.fullName}</td>
                         <td>{user.accountCreationDate}</td>
                         <td>{user.lastEditDate}</td>
                         <td>{`${user.enabled}`}</td>
