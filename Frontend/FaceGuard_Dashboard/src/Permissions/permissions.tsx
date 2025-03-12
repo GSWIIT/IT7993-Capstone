@@ -512,6 +512,14 @@ const Permissions: React.FC = () => {
                 </nav>
           <div className="permission-content">
             <section id="users" className="main">
+            <div className="permissions-display-container">
+                  <p className="user-permissions">Your Current Permissions:</p>
+                  <ul className="user-permissions-list">
+                    {userPermissions.map((permission, index) => (
+                      <li className="green-li" key={index}>{permission}</li>
+                    ))}
+                  </ul>
+                </div>
               <div className="permissions-table-container">
                 <table className="permissions-table">
                   <thead className="permissions-table-head">
@@ -527,7 +535,12 @@ const Permissions: React.FC = () => {
                   <tbody>
                     {users.map((user) => (
                       <tr key={user.username}>
-                        <td>{user.username}</td>
+                        <td>
+                          <ul className="ul-user-icon" >
+                            <li><img src="/src/assets/user.png"/> </li>
+                            <li>{user.username}</li>  
+                          </ul>
+                        </td>
                         <td>{user.email}</td>
                         <td>{user.fullName}</td>
                         <td>{user.accountCreationDate}</td>
@@ -537,19 +550,13 @@ const Permissions: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
-                <div className="permissions-display-container">
-                  <p className="user-permissions">Your Current Permissions:</p>
-                  <ul className="user-permissions-list">
-                    {userPermissions.map((permission, index) => (
-                      <li className="green-li" key={index}>{permission}</li>
-                    ))}
-                  </ul>
-                </div>
+                
               </div>
+              
             </section>
             
             <section id="groups" className="main">
-              <div className="permissions-table-container">
+              <div className="group-permissions-table-container">
 
                 <div className="create-group-btn-container">
                   <button className="permissions-create-button" onClick={() => toggleModal()}>Create A Group</button>
@@ -580,10 +587,10 @@ const Permissions: React.FC = () => {
                           </td>
                           <td>{group.members.join(', ')}</td>
                           <td>
-                          <button className="permissions-edit-button" onClick={() => toggleEditUsersOverlay(group)}>Edit Users</button>
+                          <button className="detete-btn-icon" onClick={() => toggleEditUsersOverlay(group)}><img className="btn-icon" src="/src/assets/edit.png"/></button>
                           </td>
                           <td>
-                            <button className="permissions-edit-button" onClick={() => toggleModal(group)}>Edit Group</button>
+                            <button className="detete-btn-icon" onClick={() => toggleModal(group)}><img className="btn-icon" src="/src/assets/edit.png"/></button>
                           </td>
                           <td>
                             <button className="detete-btn-icon" onClick={() => deleteGroup(group.name)}><img className="btn-icon" src="/src/assets/delete.png"/></button>

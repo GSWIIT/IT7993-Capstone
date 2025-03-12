@@ -514,13 +514,13 @@ const account: React.FC = () => {
                       <h2>Edit Profile</h2>
                     </header>
                     <div className="profile-container">
-                      <p>Your Full Name</p>
+                      <label>Your Full Name:</label>
                       <input type="text" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)}/>
-                      <br></br>
-                      <p>Your Organization Email</p>
+                    </div>
+                    <div className="profile-container">
+                      <label>Your Email:</label>
                       <input type="text" placeholder="johndoe@organization.org" value={email} onChange={(e) => setEmail(e.target.value)}/>
                     </div>
-                    <br></br>
                     <button className="profile-btn" onClick={onSaveProfileClick}>Submit Changes</button>
 							    </section>
 
@@ -529,7 +529,6 @@ const account: React.FC = () => {
                       <h2>Change Password</h2>
                     </header>
                     <div className="password-container">
-                      <p>To change your password, simply fill out the form below:</p>
                       <input className="current-password-txt" type="password" placeholder="Current Password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
                       <input className="new-password-txt" type="password" placeholder="New Password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
                       <input className="confirm-password-txt" type="password" placeholder="Confirm New Password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} />

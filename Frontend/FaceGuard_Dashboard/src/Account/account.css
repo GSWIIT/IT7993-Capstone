@@ -165,14 +165,25 @@ button:hover{
 #profile{
     margin-top: 0;
 }
-
+.profile-container {
+    display:grid;
+    grid-template-columns: max-content max-content;
+    grid-gap:20px;
+    margin-left: 22%;
+    margin-bottom: 2%;
+}
+label{
+    margin-top: 10%;
+    width:  200px;
+    text-align: right;
+}
 .profile-container > input{
     margin: 10px auto 10px auto;
     padding-bottom: 10px;
-    width: 30%;
+    width: 400px;
 }
 .password-container > input{
-    margin: 10px auto 10px auto;
+    margin: 10px auto 15px auto;
     padding-bottom: 10px;
     width: 30%;
 }
