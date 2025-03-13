@@ -158,6 +158,7 @@ const account: React.FC = () => {
     setFaceRecognitionMessage(message);
     setFaceRecognitionSuccess(success);
     setShowFaceRecognitionMessage(true);
+    
   };
 
   const uploadForRecognition = () => {
@@ -187,6 +188,7 @@ const account: React.FC = () => {
           setConfirmedPhotos(true);
           setShowFinalPhotoConfirmation(true);
           setShowCaptureContainer(false);
+
         }
         if (result.output) {
           result.output.forEach((imageObj: any, index: number) => {
@@ -276,6 +278,7 @@ const account: React.FC = () => {
 
   const hideLoadingOverlay = () => {
     setShowServerMessage(false);
+    setShowPhotoUploadOverlay(false);
   };
 
   const setServerResponseMessage = (message: string) => {
@@ -353,6 +356,7 @@ const account: React.FC = () => {
       body: JSON.stringify({
         faceArray: photoArray,
       }),
+      
     })
       .then((response) => response.json())
       .then((result) => {
@@ -368,6 +372,9 @@ const account: React.FC = () => {
     onGetUserLogsClick();
   }, []);
 
+  const refreshPage = () => {
+    window.location.reload();
+  };
   return (
     <div> 
       <div className="container">
@@ -384,7 +391,7 @@ const account: React.FC = () => {
             <a className="Account">Account Settings</a>
           </Link>
           <Link to="/permissions">
-            <a className="logs">logs & Permissions</a>
+            <a className="logs">Groups & Permissions</a>
           </Link>
           <Link to="/about">
             <a className="About">About Us</a>
@@ -404,7 +411,7 @@ const account: React.FC = () => {
                 ) : (
                   <>
                     <p>{serverMessage}</p>
-                    <button onClick={hideLoadingOverlay} className="ok-button">OK</button>
+                    <button onClick={hideLoadingOverlay} >OK</button>
                   </>
                 )}
               </div>

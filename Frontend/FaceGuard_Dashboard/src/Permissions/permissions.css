@@ -253,6 +253,10 @@ thead {
   text-align: center;
   min-width: 300px;
   z-index: 3000;
+
+}
+.server-message-box > button{
+  margin-top: 3%;
 }
 .loading-spinner {
   border: 5px solid rgba(0, 0, 0, 0.1);

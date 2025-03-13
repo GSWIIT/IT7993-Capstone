@@ -488,7 +488,7 @@ const Permissions: React.FC = () => {
                 ) : (
                   <>
                     <p>{serverMessage}</p>
-                    <button onClick={hideLoadingOverlay} className="ok-button">OK</button>
+                    <button onClick={hideLoadingOverlay} >OK</button>
                   </>
                 )}
               </div>

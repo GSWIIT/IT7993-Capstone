@@ -246,7 +246,7 @@ def update_face_hashes():
         # Print transaction status
         if receipt.status == 1:
             print("Updated user face hashes successfully.")
-            return jsonify ({"success": True, "reason": "Password updated successfully!"})
+            return jsonify ({"success": True, "reason": "Facial Recognition updated successfully!"})
         else:
             return jsonify ({"success": False, "reason": "There was an issue writing to the blockchain..."})
     else:
