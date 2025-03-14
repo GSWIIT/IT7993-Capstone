@@ -155,6 +155,20 @@ def get_user_permissions():
     return jsonify({"success": True, "reason": "Permissions obtained successfully.", "array": permissions})
 
 #protected with login_required decorator function
+@permissions_bp.route('/routed-system-access', methods=['GET'])
+@login_required
+def verify_user_route_access():
+
+    permissions = get_user_permissions()
+
+    has_access_to_website = ("Website Access: Google" in permissions)
+
+    if(has_access_to_website):
+        return redirect("www.google.com")
+    else:
+        return jsonify ({"success": False})
+
+#protected with login_required decorator function
 @permissions_bp.route('/create-group', methods=['POST'])
 @login_required
 def create_group():
