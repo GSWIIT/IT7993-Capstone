@@ -436,27 +436,29 @@ const Permissions: React.FC = () => {
         {showUserLogsOverlay && selectedUser && (
           <div className="modal-overlay">
             <div className="user-logs-content">
-              <h2>User Logs: {selectedUser.username}</h2>
-              <table className="permissions-table">
-                <thead>
-                  <tr>
-                    <th>Timestamp</th>
-                    <th>Event</th>
-                    <th>Data</th>
-                    <th>Block</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.map((log) => (
-                    <tr key={log.timestamp}>
-                      <td>{log.timestamp}</td>
-                      <td>{log.event}</td>
-                      <td>{log.data}</td>
-                      <td>{log.block}</td>
+                <h2>User Logs: {selectedUser.username}</h2>
+                <div className="log-table">
+                <table className="permissions-table">
+                  <thead>
+                    <tr>
+                      <th>Timestamp</th>
+                      <th>Event</th>
+                      <th>Data</th>
+                      <th>Block</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {logs.map((log) => (
+                      <tr key={log.timestamp}>
+                        <td>{log.timestamp}</td>
+                        <td>{log.event}</td>
+                        <td>{log.data}</td>
+                        <td>{log.block}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               <div className="modal-buttons">
                 <button className="permissions_edit_group_users_submit_button" onClick={() => toggleUserLogsOverlay(selectedUser)}>Done</button>
               </div>
