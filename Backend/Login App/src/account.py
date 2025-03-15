@@ -8,6 +8,7 @@ from blockchain_connection import get_contract, get_w3_object, get_owner_address
 import time
 from login import hash_password, create_lsh_from_image
 from hexbytes import HexBytes  # Import this for type checking
+import datetime
 
 account_bp = Blueprint('account', __name__, template_folder='templates')
 
@@ -261,14 +262,71 @@ def convert_attr_dict(obj):
         return HexBytes.to_hex(obj)  # Convert bytes to hex string for JSON compatibility
     return obj  # Return unchanged if not AttributeDict, list, or dict
 
+def get_web3_event_logs_from_username(event, username_topic):
+    # Collect all user's events into an array
+    all_events = []
+
+    event_obj = event()
+
+    signature = Web3.keccak(text=event.signature).hex()
+
+    logs = w3.eth.get_logs({
+        'fromBlock': 'earliest',
+        'toBlock': 'latest',
+        'address': contract.address,
+        'topics': ["0x" + signature, "0x" + username_topic]  # Must match indexed parameters
+    })
+
+    for log in logs:
+        decoded_event = event_obj.process_log(log)
+        all_events.append(decoded_event)
+
+    #json_result = ([w3.to_json(log) for log in all_events])
+
+    return all_events
+
 #protected with login_required decorator function
 @account_bp.route('/get-user-events', methods=['GET'])
 @login_required
 def get_user_events():
+    try:
+        username_logs_requested = request.args.get('username')  # Retrieve the username from query parameters
+    except:
+        print("No username sent. Assuming session user logs will be sent.")
+        username_logs_requested = None
+
+    permissions = contract.functions.getUserPermissions(session["username"]).call()
+
+    has_read_all = any("FaceGuard Read: All" in perm for perm in permissions)
+    has_read_users = any("FaceGuard Read: Users" in perm for perm in permissions)
+    has_read_self = any("FaceGuard Read: Self" in perm for perm in permissions)
+
+    return_allowed = False
+
+    if has_read_all or has_read_users:
+        return_allowed = True
+    else:
+        if has_read_self:
+            if username_logs_requested != None:
+                if (username_logs_requested == session["username"]):
+                    return_allowed = True
+                else:
+                    return_allowed = False
+            else:
+                return_allowed = True
+
+    if(return_allowed == False):
+        return jsonify ({"success": False, "reason": "User does not have permission to perform this action!"})
+    
+    if(username_logs_requested != None):
+        username = username_logs_requested
+    else:
+        username = session["username"]
 
     #list events to check for on the blockchain
     events = [
         contract.events.UserRegistered,
+        contract.events.UserLoggedIn,
         contract.events.PasswordUpdated,
         contract.events.PasswordChangeRequired,
         contract.events.FaceHashUpdated,
@@ -280,35 +338,61 @@ def get_user_events():
     ]
 
     # Convert the username to a topic (if indexed)
-    username = session["username"]
     username_topic = w3.keccak(text=username).hex()
-    print(username_topic)
 
-    signature = Web3.keccak(text="UserRegistered(string)").hex()
-    print(signature)
-
-    # Collect all user's events into an array
-    all_events = []
+    #we will format the logs to return them to the FaceGuard app
+    all_formatted_logs = []
 
     for event in events:
-        event_obj = event()
+        event_logs = get_web3_event_logs_from_username(event, username_topic)
 
-        signature = Web3.keccak(text=event.signature).hex()
-        print(signature)
+        for log in event_logs:
+            block_number = int(log["blockNumber"])
+            block_timestamp = w3.eth.get_block(block_number).timestamp
+            formatted_timestamp = datetime.datetime.fromtimestamp(block_timestamp)
 
-        logs = w3.eth.get_logs({
-            'fromBlock': 'earliest',
-            'toBlock': 'latest',
-            'address': contract.address,
-            'topics': ["0x" + signature, "0x" + username_topic]  # Must match indexed parameters
-        })
+            event_name = log["event"]
+            event_data = f"User [{username}] "
+            match event_name:
+                case "UserRegistered":
+                    event_data += "successfully registered to smart contract."
+                case "UserLoggedIn":
+                    event_data += "authenticated successfully."
+                case "PasswordUpdated":
+                    event_data += "updated password successfully."
+                case "PasswordChangeRequired":
+                    event_data += "updated. An admin has required this account to update their password on next login."
+                case "FaceHashUpdated":
+                    event_data += "uploaded new face hashes successfully."
+                case "UserEmailUpdated":
+                    log_old_email = log["args"]["oldEmail"]
+                    if log_old_email == "":
+                        log_old_email = "' '"
+                    log_new_email = log["args"]["newEmail"]
+                    event_data += f"updated email address successfully ([{log_old_email} => {log_new_email}])."
+                case "UserFullNameUpdated":
+                    log_old_full_name = log["args"]["oldFullName"]
+                    if log_old_full_name == "":
+                        log_old_full_name = "' '"
+                    log_new_full_name = log["args"]["newFullName"]
+                    event_data += f"updated full name successfully ([{log_old_full_name} => {log_new_full_name}])."
+                case "UserToggled":
+                    log_enabled = log["args"]["enabled"]
+                    if log_enabled:
+                        event_data += "account has been enabled."
+                    else:
+                        event_data += "account has been disabled."
+                case "UserAddedToGroup":
+                    log_group_name = log["args"]["groupName"]
+                    event_data += f"added to permissions group successfully ([{log_group_name}])."
+                case "UserRemovedFromGroup":
+                    log_group_name = log["args"]["groupName"]
+                    event_data += f"removed from permissions group successfully ([{log_group_name}])."
+                case _:
+                    event_data += "[Server Error: Event Not Implemented.]"
+            
+            all_formatted_logs.append({"timestamp": formatted_timestamp, "block": block_number, "event": event_name, "data": event_data})            
 
-        for log in logs:
-            decoded_event = event_obj.process_log(log)
-            all_events.append(decoded_event)
+    all_formatted_logs.sort(key=lambda log: log["timestamp"], reverse=True)
 
-    json_result = ([w3.to_json(log) for log in all_events])
-
-    print(json_result)
-
-    return jsonify ({"success": True, "reason": "Obtained user events successfully.", "logs": json_result})
+    return jsonify ({"success": True, "reason": "Obtained user events successfully.", "logs": all_formatted_logs})

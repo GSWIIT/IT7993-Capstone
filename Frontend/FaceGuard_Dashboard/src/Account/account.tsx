@@ -8,10 +8,9 @@ const account: React.FC = () => {
   const pageNavigator = useNavigate();
 
   interface Logs {
-    logIndex: string;
-    event: string;
+    block: string;
     data: string;
-    args: string[];
+    event: string;
     timestamp: string;
   }
 
@@ -213,6 +212,7 @@ const account: React.FC = () => {
   };
 
   const getSelf = async () => {
+    showLoadingOverlay()
     fetch('http://127.0.0.1:5000/account/get-self', {
       method: 'GET',
       credentials: "include"
@@ -225,6 +225,7 @@ const account: React.FC = () => {
         setEmail(result.user[7])
         setFullName(result.user[8])
       }
+      hideLoadingOverlay()
     })
   };
   
@@ -241,6 +242,7 @@ const account: React.FC = () => {
   };
 
   const onGetUserLogsClick = () => {
+    showLoadingOverlay()
     console.log("Getting user logs from blockchain...");
     fetch('http://127.0.0.1:5000/account/get-user-events', {
       method: 'GET',
@@ -249,23 +251,29 @@ const account: React.FC = () => {
       .then((response) => response.json())
       .then((result) => {
         console.log(result)
-        const logs = result.logs
-        
-        const listItems = [];
-        for (let i = 0; i < logs.length; i++)
+        if(result.success == false)
         {
-          listItems.push(JSON.parse(logs[i]))
+          setIsLoading(false)
+          setServerResponseMessage(result.reason)
+          handleScrollToSection("profile")
         }
-        setLogs(listItems)
-        console.log("Logs state:", listItems);
+        else
+        {
+          setLogs(result.logs)
+          hideLoadingOverlay()
+        }
       })
   };
 
-  const handleScrollToSection = (id: 'profile' | 'password' | 'facereg' | 'delete'|'activities') => {
+  const handleScrollToSection = (id: 'profile' | 'password' | 'facereg' | 'delete' | 'activities') => {
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
       setActiveTab(id); // Set the active tab
+
+      if (id == 'activities') {
+        onGetUserLogsClick();
+      }
     }
   };
 
@@ -369,7 +377,6 @@ const account: React.FC = () => {
     checkSession();
     handleScrollToSection("profile");
     getSelf();
-    onGetUserLogsClick();
   }, []);
 
   const refreshPage = () => {
@@ -585,7 +592,9 @@ const account: React.FC = () => {
                <section id="facereg" className="main">
                     <header className="major">
                       <h2>Re-register Facial Recognition</h2>
-                     
+                      <br></br>
+                      <p>If you need to redo/update your face hashes, press the button below.</p>
+                      <br></br>
                     </header>
                     <button className="facereg-btn" onClick={displayCapturePhotoOverlay}>Get Started!</button>
 							</section> 
@@ -598,17 +607,19 @@ const account: React.FC = () => {
                     <table className="permissions-table">
                       <thead className="permissions-table-head">
                         <tr>
-                          <th>Log Index</th>
+                          <th>Timestamp</th>
                           <th>Event</th>
                           <th>Data</th>
+                          <th>Block</th>
                         </tr>
                       </thead>
                       <tbody>
                         {logs.map((log) => (
-                          <tr key={log.logIndex}>
-                            <td>{log.logIndex}</td>
+                          <tr key={log.timestamp}>
+                            <td>{log.timestamp}</td>
                             <td>{log.event}</td>
-                            <td>{log.args[0]}</td>
+                            <td>{log.data}</td>
+                            <td>{log.block}</td>
                           </tr>
                         ))}
                       </tbody>

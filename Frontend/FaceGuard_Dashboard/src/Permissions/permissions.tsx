@@ -22,6 +22,13 @@ interface User {
   fullName: string;
 }
 
+interface Logs {
+  block: string;
+  data: string;
+  event: string;
+  timestamp: string;
+}
+
 const Permissions: React.FC = () => {
   const navigator = useNavigate()
 
@@ -33,6 +40,10 @@ const Permissions: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [userPermissions, setPermissions] = useState<string[]>(["None"]);
+
+  const [showUserLogsOverlay, setShowUserLogsOverlay] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [logs, setLogs] = useState<Logs[]>([]);
 
   const [showModal, setShowModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -131,6 +142,33 @@ const Permissions: React.FC = () => {
   const toggleEditUsersOverlay = (group?: Group) => {
     setSelectedGroup(group || null);
     setShowEditUsersOverlay(!showEditUsersOverlay);
+  };
+
+  const toggleUserLogsOverlay = async (user?: User) => {
+    if(!showUserLogsOverlay)
+    {
+      setSelectedUser(user || null);
+      showLoadingOverlay();
+      await fetch(`http://127.0.0.1:5000/account/get-user-events?username=${encodeURIComponent(user.username)}`, {
+        method: 'GET',
+        credentials: "include",
+      })
+      .then((response) => response.json())
+      .then((result) => {
+        setIsLoading(false)
+        setServerResponseMessage(result.reason)
+        if(result.success)
+        {
+          setLogs(result.logs);
+          hideLoadingOverlay();
+          setShowUserLogsOverlay(!showUserLogsOverlay);
+        }
+      })
+    }
+    else
+    {
+      setShowUserLogsOverlay(!showUserLogsOverlay);
+    }
   };
 
   const handleAddUser = async () => {
@@ -252,14 +290,14 @@ const Permissions: React.FC = () => {
         console.log(result);
         if (result.success) 
         {
-          // Transform the groups data in case there are too many usernames (it keeps the UI from clogging up)
+          /* Transform the groups data in case there are too many usernames (it keeps the UI from clogging up)
           const transformedGroups = result.array.map((group: { members: string | any[]; }) => ({
             ...group,
             members: group.members.length > 3 
               ? [...group.members.slice(0, 3), "..."] 
               : group.members
-          }));
-          setGroups(transformedGroups)
+          })); */
+          setGroups(result.array)
           setGroupsLoaded(true)
           if(usersLoaded && groupsLoaded && permissionsLoaded)
           {
@@ -395,6 +433,36 @@ const Permissions: React.FC = () => {
             <h1>Groups and Permissions</h1>
         </div>
         <div className="permissions-container">
+        {showUserLogsOverlay && selectedUser && (
+          <div className="modal-overlay">
+            <div className="user-logs-content">
+              <h2>User Logs: {selectedUser.username}</h2>
+              <table className="permissions-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Event</th>
+                    <th>Data</th>
+                    <th>Block</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map((log) => (
+                    <tr key={log.timestamp}>
+                      <td>{log.timestamp}</td>
+                      <td>{log.event}</td>
+                      <td>{log.data}</td>
+                      <td>{log.block}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="modal-buttons">
+                <button className="permissions_edit_group_users_submit_button" onClick={() => toggleUserLogsOverlay(selectedUser)}>Done</button>
+              </div>
+            </div>
+          </div>
+        )}
         {showEditUsersOverlay && selectedGroup && (
           <div className="modal-overlay">
             <div className="modal-content">
@@ -530,6 +598,7 @@ const Permissions: React.FC = () => {
                       <th>Account Creation Date</th>
                       <th>Last Edit Date</th>
                       <th>Enabled</th>
+                      <th>View Logs</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -546,6 +615,9 @@ const Permissions: React.FC = () => {
                         <td>{user.accountCreationDate}</td>
                         <td>{user.lastEditDate}</td>
                         <td>{`${user.enabled}`}</td>
+                        <td>
+                          <button className="edit-btn-icon" onClick={() => toggleUserLogsOverlay(user)}><img className="btn-icon" src="/src/assets/edit.png"/></button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -568,7 +640,6 @@ const Permissions: React.FC = () => {
                       <tr>
                         <th className="sticky">Name</th>
                         <th className="sticky">Permissions</th>
-                        <th className="sticky">Users</th>
                         <th className="sticky">Edit Users</th>
                         <th className="sticky">Edit Group</th>
                         <th className="sticky">Delete</th>
@@ -585,7 +656,6 @@ const Permissions: React.FC = () => {
                               )}
                             </ul>
                           </td>
-                          <td>{group.members.join(', ')}</td>
                           <td>
                           <button className="edit-btn-icon" onClick={() => toggleEditUsersOverlay(group)}><img className="btn-icon" src="/src/assets/edit.png"/></button>
                           </td>

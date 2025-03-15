@@ -29,12 +29,12 @@ contract FaceGuard {
     address private owner;
 
     event UserRegistered(string indexed username);
+    event UserLoggedIn(string indexed username);
     event PasswordUpdated(string indexed username);
     event PasswordChangeRequired(string indexed username);
     event FaceHashUpdated(string indexed username);
-    event UserEmailUpdated(string indexed username, string email);
-    event UserFullNameUpdated(string indexed username, string fullName);
-    event PermissionsUpdated(string indexed username);
+    event UserEmailUpdated(string indexed username, string oldEmail, string newEmail);
+    event UserFullNameUpdated(string indexed username, string oldFullName, string newFullName);
     event UserToggled(string indexed username, bool enabled);
     event GroupCreated(string indexed groupName, string[] permissions);
     event UserAddedToGroup(string indexed username, string groupName);
@@ -93,6 +93,10 @@ contract FaceGuard {
         }
     }
 
+    function emitLoginSuccessLog(string memory username) public onlyOwner {
+        emit UserLoggedIn(username);
+    }
+
     function getUserFaceHashes(string memory username) public view returns (string[] memory) {
         return users[username].faceHashes;
     }
@@ -109,13 +113,15 @@ contract FaceGuard {
     }
 
     function updateUserEmail(string memory username, string memory newEmail) public onlyOwner {
+        string memory oldEmail = users[username].email;
         users[username].email = newEmail;
-        emit UserEmailUpdated(username, newEmail);
+        emit UserEmailUpdated(username, oldEmail, newEmail);
     }
 
     function updateUserFullName(string memory username, string memory newFullName) public onlyOwner {
+        string memory oldFullName = users[username].fullName;
         users[username].fullName = newFullName;
-        emit UserFullNameUpdated(username, newFullName);
+        emit UserFullNameUpdated(username, oldFullName, newFullName);
     }
 
     function toggleUser(string memory username) public onlyOwner {
