@@ -618,7 +618,7 @@ const Permissions: React.FC = () => {
                         <td>{user.lastEditDate}</td>
                         <td>{`${user.enabled}`}</td>
                         <td>
-                          <button className="edit-btn-icon" onClick={() => toggleUserLogsOverlay(user)}><img className="btn-icon" src="/src/assets/edit.png"/></button>
+                          <button className="edit-btn-icon" onClick={() => toggleUserLogsOverlay(user)}><img className="view-btn-icon" src="/src/assets/view.png"/></button>
                         </td>
                       </tr>
                     ))}
