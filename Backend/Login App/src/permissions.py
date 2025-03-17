@@ -401,7 +401,10 @@ def delete_group():
     if (has_delete_group_permission) or (has_delete_group_manager_permission):
         #estimate the cost of the ethereum transaction by predicting gas
         print("Estimating gas...")
-        estimated_gas = contract.functions.removeGroup(groupName).estimate_gas({"from": owner_address})
+        try:
+            estimated_gas = contract.functions.removeGroup(groupName).estimate_gas({"from": owner_address})
+        except Exception as e:
+            return jsonify ({"success": False, "reason": "Blockchain exception caught! Error:" + str(e.args[0]) + "!"})
 
         # Get the suggested gas price
         gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically

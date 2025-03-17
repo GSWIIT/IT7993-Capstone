@@ -592,9 +592,6 @@ const account: React.FC = () => {
                <section id="facereg" className="main">
                     <header className="major">
                       <h2>Re-register Facial Recognition</h2>
-                      <br></br>
-                      <p>If you need to redo/update your face hashes, press the button below.</p>
-                      <br></br>
                     </header>
                     <button className="facereg-btn" onClick={displayCapturePhotoOverlay}>Get Started!</button>
 							</section> 
