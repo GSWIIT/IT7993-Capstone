@@ -373,6 +373,9 @@ thead {
   height: 25px;
 
 }
+.view-btn-icon{
+  height: 30px;
+}
 .user-icon{
   margin-left: 0px;
 }
@@ -382,4 +385,17 @@ thead {
   flex-direction: column;
   align-items: center;
   margin-left: 5px;
+}
+.user-logs-content > h2{
+  color: rgba(18,166,159,255);
+  margin-bottom: 1%;
+}
+.log-table{
+  overflow-y: scroll;
+  height: 320px;
+}
+.log-table thead th{
+  position: sticky;
+  top: 0;
+  background-color: #f4f4f4;
 }
