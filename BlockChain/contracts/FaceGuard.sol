@@ -25,6 +25,7 @@ contract FaceGuard {
     mapping(string => Group) private groups;
     string[] private allUsernames; // Array to store all created users
     string[] private allGroupNames; //Array to store group names, so they can be called later
+    string private founderAccount; //founder account should always be an admin, cannot be deleted or removed from Administrators
 
     address private owner;
 
@@ -90,6 +91,7 @@ contract FaceGuard {
         //if this is the very first user in the smart contract, we will also add them to the administrators group.
         if (allUsernames.length == 1) {
             addUserToGroup("Administrators", username);
+            founderAccount = username;
         }
     }
 
@@ -146,6 +148,31 @@ contract FaceGuard {
 
     function getAllUsernames() public view returns (string[] memory) {
         return allUsernames;
+    }
+
+    function removeUser(string memory username) public onlyOwner {
+        require(bytes(users[username].name).length > 0, "User does not exist!");
+        
+        // Check if the username is the founding account, return error if so
+        require(keccak256(abi.encodePacked(username)) != keccak256(abi.encodePacked(founderAccount)), "Deleting the original smart contract user is not allowed!");
+
+        // Remove from mapping
+        delete users[username];
+
+        // Remove from allUsernames array
+        bool found = false;
+        for (uint i = 0; i < allUsernames.length; i++) {
+            if (keccak256(abi.encodePacked(allUsernames[i])) == keccak256(abi.encodePacked(username))) {
+                found = true;
+                allUsernames[i] = allUsernames[allUsernames.length - 1]; // Move last element to current position
+                allUsernames.pop(); // Remove last element
+                break;
+            }
+        }
+
+        require(found, "User not found in allUsernames array!");
+
+        emit UserRemoved(username);
     }
 
     // Group management functions

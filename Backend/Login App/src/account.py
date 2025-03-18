@@ -396,3 +396,49 @@ def get_user_events():
     all_formatted_logs.sort(key=lambda log: log["timestamp"], reverse=True)
 
     return jsonify ({"success": True, "reason": "Obtained user events successfully.", "logs": all_formatted_logs})
+
+#protected with login_required decorator function
+@account_bp.route('/delete-self', methods=['GET'])
+@login_required
+def delete_self():
+    permissions = contract.functions.getUserPermissions(session["username"]).call()
+
+    has_delete_all = any("FaceGuard Delete: All" in perm for perm in permissions)
+    has_delete_users = any("FaceGuard Delete: Users" in perm for perm in permissions)
+    has_delete_self = any("FaceGuard Delete: Self" in perm for perm in permissions)
+
+    if has_delete_all or has_delete_users or has_delete_self:
+        print("User will be deleted. Estimating gas...")
+        try:
+            estimated_gas = contract.functions.removeUser(session["username"]).estimate_gas({"from": owner_address})
+        except Exception as e:
+            return jsonify ({"success": False, "reason": "Error encountered! Blockchain Response[" + str(e.args[0]) + "]."})
+
+        # Get the suggested gas price
+        gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
+        max_priority_fee = w3.to_wei("4", "gwei")  # Priority fee (adjust based on congestion)
+        max_fee_per_gas = gas_price + max_priority_fee
+
+        tx = contract.functions.removeUser(session["username"]).build_transaction({
+            "from": owner_address,
+            "nonce": w3.eth.get_transaction_count(owner_address),
+            "gas": estimated_gas + 200000, 
+            "maxFeePerGas": max_fee_per_gas,  # Total fee
+            "maxPriorityFeePerGas": max_priority_fee,  # Tip for miners
+        })
+
+        # Sign transaction with private key
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
+
+        print("Sending face hash update transaction...")
+        # Send transaction to blockchain
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+
+        # Wait for confirmation of transaction
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+        # Print transaction status
+        if receipt.status == 1:
+            return jsonify ({"success": True, "reason": "User deleted successfully."})
+        else:
+            return jsonify ({"success": False, "reason": "An error occurred while writing to the blockchain..."})
