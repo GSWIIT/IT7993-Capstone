@@ -275,7 +275,8 @@ def signup():
         if user_obj[0] == "":
             userExists = False
             #this should not happen if transaction went through
-            print("The transaction went through but the user is still not found. It will show up eventually I guess")
+            print("The transaction went through but the user is still not found. It will show up eventually I guess...")
+            return jsonify({"success": True, "reason": "User created successfully."})
         else:
             userExists = True
             print("The user is now on the blockchain! The script was successful.")

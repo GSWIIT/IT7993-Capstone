@@ -373,6 +373,24 @@ const account: React.FC = () => {
       });
   };
 
+  const onDeleteSelfClick = () => {
+    showLoadingOverlay();
+    fetch('http://127.0.0.1:5000/account/delete-self', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: "include"      
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        setIsLoading(false);
+        setServerResponseMessage(result.reason);
+        if(result.success)
+        {
+          onLogOutClick();
+        }
+      });
+  };
+
   useEffect(() => {
     checkSession();
     handleScrollToSection("profile");
@@ -631,7 +649,7 @@ const account: React.FC = () => {
                 </header>
                 <p>Are you sure you want to delete your account? This action cannot be undone.</p>
                     <br></br>
-                    <button className="delete-btn">Delete Account</button>
+                    <button className="delete-btn" onClick={onDeleteSelfClick}>Delete Account</button>
               </section>
               
                             

@@ -25,7 +25,9 @@ contract FaceGuard {
     mapping(string => Group) private groups;
     string[] private allUsernames; // Array to store all created users
     string[] private allGroupNames; //Array to store group names, so they can be called later
+    
     string private founderAccount; //founder account should always be an admin, cannot be deleted or removed from Administrators
+    bool private isRemovingUser = false; //boolean to control protecting removeUserFromGroup function
 
     address private owner;
 
@@ -43,6 +45,7 @@ contract FaceGuard {
     event GroupPermissionsUpdated(string indexed groupName, string[] permissions);
     event GroupNameUpdated(string indexed originalGroupName, string newGroupName);
     event GroupRemoved(string indexed groupName);
+    event UserRemoved(string username);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only the contract owner can perform this action");
@@ -151,13 +154,14 @@ contract FaceGuard {
     }
 
     function removeUser(string memory username) public onlyOwner {
-        require(bytes(users[username].name).length > 0, "User does not exist!");
+        require(bytes(users[username].username).length > 0, "User does not exist!");
         
         // Check if the username is the founding account, return error if so
-        require(keccak256(abi.encodePacked(username)) != keccak256(abi.encodePacked(founderAccount)), "Deleting the original smart contract user is not allowed!");
+        require(keccak256(abi.encodePacked(username)) != keccak256(abi.encodePacked(founderAccount)), "Deleting the original smart contract administrator is not allowed!");
 
-        // Remove from mapping
-        delete users[username];
+        isRemovingUser = true;
+        removeUserFromGroup("Users", username);
+        isRemovingUser = false;
 
         // Remove from allUsernames array
         bool found = false;
@@ -170,7 +174,8 @@ contract FaceGuard {
             }
         }
 
-        require(found, "User not found in allUsernames array!");
+        // Remove from mapping
+        delete users[username];
 
         emit UserRemoved(username);
     }
@@ -194,6 +199,11 @@ contract FaceGuard {
         require(bytes(groups[groupName].name).length > 0, "Group does not exist");
         require(bytes(users[username].username).length > 0, "User does not exist");
 
+        //testing
+        if(isRemovingUser == false) {
+            require(keccak256(abi.encodePacked(groupName)) != keccak256(abi.encodePacked("Users")), "Removing users from the Users group is not allowed!");
+        }
+
         string[] storage members = groups[groupName].members;
         bool found = false;
 
@@ -206,7 +216,9 @@ contract FaceGuard {
             }
         }
 
-        require(found, "User is not in this group");
+        if(isRemovingUser == false) {
+            require(found, "User is not in this group");
+        }
 
         emit UserRemovedFromGroup(username, groupName);
     }
