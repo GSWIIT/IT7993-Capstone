@@ -235,7 +235,7 @@ def update_group():
     print("User [" + str(session["username"]) + "] has permission to update groups: ", has_update_group_permissions)
 
     if has_update_group_permissions:
-        print("Group Name needs update: ", originalGroupName != newGroupName)
+        print("Group needs update: ", originalGroupName != newGroupName)
         #estimate the cost of the ethereum transaction by predicting gas
         print("Estimating gas...")
         try:
@@ -259,7 +259,7 @@ def update_group():
         # Sign transaction with private key
         signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
 
-        print("Sending group name update transaction...")
+        print("Sending group update transaction...")
         # Send transaction to blockchain
         tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
@@ -422,7 +422,7 @@ def delete_group():
         # Sign transaction with private key
         signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
 
-        print("Sending transaction to remove group...")
+        print("Sending transaction to delete group...")
         # Send transaction to blockchain
         tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 

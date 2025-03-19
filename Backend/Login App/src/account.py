@@ -86,7 +86,7 @@ def update_profile():
             # Sign transaction with private key
             signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
 
-            print("Sending group name update transaction...")
+            print("Sending email update transaction...")
             # Send transaction to blockchain
             tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
@@ -120,7 +120,7 @@ def update_profile():
             # Sign transaction with private key
             signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
 
-            print("Sending group name update transaction...")
+            print("Sending full name update transaction...")
             # Send transaction to blockchain
             tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
@@ -262,7 +262,7 @@ def convert_attr_dict(obj):
         return HexBytes.to_hex(obj)  # Convert bytes to hex string for JSON compatibility
     return obj  # Return unchanged if not AttributeDict, list, or dict
 
-def get_web3_event_logs_from_username(event, username_topic):
+def get_web3_event_logs_from_topic(event, topic):
     # Collect all user's events into an array
     all_events = []
 
@@ -274,7 +274,7 @@ def get_web3_event_logs_from_username(event, username_topic):
         'fromBlock': 'earliest',
         'toBlock': 'latest',
         'address': contract.address,
-        'topics': ["0x" + signature, "0x" + username_topic]  # Must match indexed parameters
+        'topics': ["0x" + signature, "0x" + topic]  # Must match indexed parameters
     })
 
     for log in logs:
@@ -344,7 +344,7 @@ def get_user_events():
     all_formatted_logs = []
 
     for event in events:
-        event_logs = get_web3_event_logs_from_username(event, username_topic)
+        event_logs = get_web3_event_logs_from_topic(event, username_topic)
 
         for log in event_logs:
             block_number = int(log["blockNumber"])
@@ -363,7 +363,110 @@ def get_user_events():
                 case "PasswordChangeRequired":
                     event_data += "updated. An admin has required this account to update their password on next login."
                 case "FaceHashUpdated":
-                    event_data += "uploaded new face hashes successfully."
+                    log_old_faceHashes = log["args"]["oldFaceHashes"]
+                    log_new_faceHashes = log["args"]["newFaceHashes"]
+                    event_data += f"uploaded new face hashes successfully ({log_old_faceHashes} => {log_new_faceHashes})."
+                case "UserEmailUpdated":
+                    log_old_email = log["args"]["oldEmail"]
+                    if log_old_email == "":
+                        log_old_email = "' '"
+                    log_new_email = log["args"]["newEmail"]
+                    event_data += f"updated email address successfully ({log_old_email} => {log_new_email})."
+                case "UserFullNameUpdated":
+                    log_old_full_name = log["args"]["oldFullName"]
+                    if log_old_full_name == "":
+                        log_old_full_name = "' '"
+                    log_new_full_name = log["args"]["newFullName"]
+                    event_data += f"updated full name successfully ({log_old_full_name} => {log_new_full_name})."
+                case "UserToggled":
+                    log_enabled = log["args"]["enabled"]
+                    if log_enabled:
+                        event_data += "account has been enabled."
+                    else:
+                        event_data += "account has been disabled."
+                case "UserAddedToGroup":
+                    log_group_name = log["args"]["groupName"]
+                    event_data += f"added to permissions group successfully ({log_group_name})."
+                case "UserRemovedFromGroup":
+                    log_group_name = log["args"]["groupName"]
+                    event_data += f"removed from permissions group successfully ({log_group_name})."
+                case _:
+                    event_data += "[Server Error: Event Not Implemented.]"
+            
+            all_formatted_logs.append({"timestamp": formatted_timestamp, "block": block_number, "event": event_name, "data": event_data})            
+
+    all_formatted_logs.sort(key=lambda log: log["timestamp"], reverse=True)
+
+    return jsonify ({"success": True, "reason": "Obtained user events successfully.", "logs": all_formatted_logs})
+
+#protected with login_required decorator function
+@account_bp.route('/get-group-events', methods=['GET'])
+@login_required
+def get_group_events():
+    try:
+        groupname_logs_requested = request.args.get('groupName')  # Retrieve the group name from query parameters
+    except:
+        print("No group name sent...")
+        return jsonify ({"success": False, "reason": "No group name was sent with this request!"})
+
+    permissions = contract.functions.getUserPermissions(session["username"]).call()
+
+    has_read_all = any("FaceGuard Read: All" in perm for perm in permissions)
+    has_read_groups = any("FaceGuard Read: Groups" in perm for perm in permissions)
+
+    return_allowed = False
+
+    if has_read_all or has_read_groups:
+        return_allowed = True
+    else:
+        return_allowed = False
+
+    if(return_allowed == False):
+        return jsonify ({"success": False, "reason": "User does not have permission to perform this action!"})
+
+    #list events to check for on the blockchain
+    events = [
+        contract.events.UserRegistered,
+        contract.events.UserLoggedIn,
+        contract.events.PasswordUpdated,
+        contract.events.PasswordChangeRequired,
+        contract.events.FaceHashUpdated,
+        contract.events.UserEmailUpdated,
+        contract.events.UserFullNameUpdated,
+        contract.events.UserToggled,
+        contract.events.UserAddedToGroup,
+        contract.events.UserRemovedFromGroup
+    ]
+
+    # Convert the username to a topic (if indexed)
+    groupname_topic = w3.keccak(text=groupname_logs_requested).hex()
+
+    #we will format the logs to return them to the FaceGuard app
+    all_formatted_logs = []
+
+    for event in events:
+        event_logs = get_web3_event_logs_from_topic(event, username_topic)
+
+        for log in event_logs:
+            block_number = int(log["blockNumber"])
+            block_timestamp = w3.eth.get_block(block_number).timestamp
+            formatted_timestamp = datetime.datetime.fromtimestamp(block_timestamp)
+
+            event_name = log["event"]
+            event_data = f"User [{username}] "
+            match event_name:
+                case "UserRegistered":
+                    event_data += "successfully registered to smart contract."
+                case "UserLoggedIn":
+                    event_data += "authenticated successfully."
+                case "PasswordUpdated":
+                    event_data += "updated password successfully."
+                case "PasswordChangeRequired":
+                    event_data += "updated. An admin has required this account to update their password on next login."
+                case "FaceHashUpdated":
+                    log_old_faceHashes = log["args"]["oldFaceHashes"]
+                    log_new_faceHashes = log["args"]["newFaceHashes"]
+                    event_data += f"uploaded new face hashes successfully ([{log_old_faceHashes}] => [{log_new_faceHashes}])."
                 case "UserEmailUpdated":
                     log_old_email = log["args"]["oldEmail"]
                     if log_old_email == "":
@@ -430,7 +533,7 @@ def delete_self():
         # Sign transaction with private key
         signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
 
-        print("Sending face hash update transaction...")
+        print("Sending user self delete transaction...")
         # Send transaction to blockchain
         tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 

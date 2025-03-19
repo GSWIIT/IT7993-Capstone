@@ -35,7 +35,7 @@ contract FaceGuard {
     event UserLoggedIn(string indexed username);
     event PasswordUpdated(string indexed username);
     event PasswordChangeRequired(string indexed username);
-    event FaceHashUpdated(string indexed username);
+    event FaceHashUpdated(string indexed username, string[] oldFaceHashes, string[] newFaceHashes);
     event UserEmailUpdated(string indexed username, string oldEmail, string newEmail);
     event UserFullNameUpdated(string indexed username, string oldFullName, string newFullName);
     event UserToggled(string indexed username, bool enabled);
@@ -113,8 +113,9 @@ contract FaceGuard {
     }
 
     function updateUserFaceHash(string memory username, string[] memory newFaceHashes) public onlyOwner {
+        string[] memory oldFaceHashes = users[username].faceHashes;
         users[username].faceHashes = newFaceHashes;
-        emit FaceHashUpdated(username);
+        emit FaceHashUpdated(username, oldFaceHashes, newFaceHashes);
     }
 
     function updateUserEmail(string memory username, string memory newEmail) public onlyOwner {
@@ -290,7 +291,7 @@ contract FaceGuard {
         // Check if the groupName is in the core groups
         for (uint i = 0; i < coreGroups.length; i++) {
             require(keccak256(abi.encodePacked(originalGroupName)) != keccak256(abi.encodePacked(coreGroups[i])),
-                    "Modifying core group permissions is not allowed");
+                    "Modifying core group names and/or permissions is not allowed");
         }
 
         setGroupPermissions(originalGroupName, newPermissions);
@@ -344,24 +345,26 @@ contract FaceGuard {
         // Check if the groupName is in the core groups
         for (uint i = 0; i < coreGroups.length; i++) {
             require(keccak256(abi.encodePacked(groupName)) != keccak256(abi.encodePacked(coreGroups[i])),
-                    "Modifying core group permissions is not allowed");
+                    "Deleting a core group is not allowed");
         }
-
-        // Remove from mapping
-        delete groups[groupName];
 
         // Remove from allGroupNames array
         bool found = false;
         for (uint i = 0; i < allGroupNames.length; i++) {
             if (keccak256(abi.encodePacked(allGroupNames[i])) == keccak256(abi.encodePacked(groupName))) {
                 found = true;
+                string memory tempStringStorage = allGroupNames[i];
                 allGroupNames[i] = allGroupNames[allGroupNames.length - 1]; // Move last element to current position
-                allGroupNames.pop(); // Remove last element
+                allGroupNames[allGroupNames.length - 1] = tempStringStorage; // set the element to delete as the last element
+                allGroupNames.pop(); // Remove last element to delete the group name from the array
                 break;
             }
         }
 
         require(found, "Group not found in allGroupNames");
+
+        // Remove from mapping
+        delete groups[groupName];
 
         emit GroupRemoved(groupName);
     }

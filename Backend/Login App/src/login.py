@@ -101,7 +101,7 @@ def send_login_success_log(username):
 
     # Get the suggested gas price
     gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
-    max_priority_fee = w3.to_wei("10", "gwei")  # Priority fee (adjust based on congestion)
+    max_priority_fee = w3.to_wei("20", "gwei")  # Priority fee (adjust based on congestion)
     max_fee_per_gas = gas_price + max_priority_fee
 
     #register user (use estimated gas & add an extra 50000 buffer to make sure transaction goes through)
@@ -118,6 +118,7 @@ def send_login_success_log(username):
 
     # Send transaction to blockchain
     tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+    #w3.eth.wait_for_transaction_receipt(tx_hash)
 
 @login_bp.route('/login-2FA-Face', methods=['POST'])
 def check_face_for_2FA():
@@ -240,7 +241,7 @@ def signup():
 
     # Get the suggested gas price
     gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
-    max_priority_fee = w3.to_wei("2", "gwei")  # Priority fee (adjust based on congestion)
+    max_priority_fee = w3.to_wei("10", "gwei")  # Priority fee (adjust based on congestion)
     max_fee_per_gas = gas_price + max_priority_fee
 
     #register user (use estimated gas & add an extra 50000 buffer to make sure transaction goes through)
