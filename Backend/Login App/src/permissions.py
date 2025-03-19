@@ -185,7 +185,10 @@ def create_group():
     if has_create_group_permissions:
         print("Estimating gas...")
         #estimate the cost of the ethereum transaction by predicting gas
-        estimated_gas = contract.functions.createGroup(groupName, groupPermissions).estimate_gas({"from": owner_address})
+        try:
+            estimated_gas = contract.functions.createGroup(groupName, groupPermissions).estimate_gas({"from": owner_address})
+        except Exception as e:
+            return jsonify ({"success": False, "reason": "Blockchain exception caught! Error:" + str(e.args[0]) + "!"})
 
         # Get the suggested gas price
         gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
@@ -295,7 +298,10 @@ def add_user_to_group():
     if has_update_group_permissions:
         #estimate the cost of the ethereum transaction by predicting gas
         print("Estimating gas...")
-        estimated_gas = contract.functions.addUserToGroup(groupName, usernameToUpdate).estimate_gas({"from": owner_address})
+        try:
+            estimated_gas = contract.functions.addUserToGroup(groupName, usernameToUpdate).estimate_gas({"from": owner_address})
+        except Exception as e:
+            return jsonify ({"success": False, "reason": "Blockchain exception caught! Error:" + str(e.args[0]) + "!"})
 
         # Get the suggested gas price
         gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
@@ -349,7 +355,10 @@ def remove_user_to_group():
     if has_update_group_permissions:
         #estimate the cost of the ethereum transaction by predicting gas
         print("Estimating gas...")
-        estimated_gas = contract.functions.removeUserFromGroup(groupName, usernameToUpdate).estimate_gas({"from": owner_address})
+        try:
+            estimated_gas = contract.functions.removeUserFromGroup(groupName, usernameToUpdate).estimate_gas({"from": owner_address})
+        except Exception as e:
+            return jsonify ({"success": False, "reason": "Blockchain exception caught! Error:" + str(e.args[0]) + "!"})
 
         # Get the suggested gas price
         gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically

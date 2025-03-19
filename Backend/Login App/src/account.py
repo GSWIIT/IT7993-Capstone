@@ -445,7 +445,7 @@ def get_group_events():
     all_formatted_logs = []
 
     for event in events:
-        event_logs = get_web3_event_logs_from_topic(event, username_topic)
+        event_logs = get_web3_event_logs_from_topic(event, groupname_topic)
 
         for log in event_logs:
             block_number = int(log["blockNumber"])
@@ -453,7 +453,7 @@ def get_group_events():
             formatted_timestamp = datetime.datetime.fromtimestamp(block_timestamp)
 
             event_name = log["event"]
-            event_data = f"User [{username}] "
+            event_data = f"User [{groupname_logs_requested}] "
             match event_name:
                 case "UserRegistered":
                     event_data += "successfully registered to smart contract."
