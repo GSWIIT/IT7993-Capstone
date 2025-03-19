@@ -108,7 +108,7 @@ def send_login_success_log(username):
     tx = contract.functions.emitLoginSuccessLog(username).build_transaction({
         "from": owner_address,
         "nonce": w3.eth.get_transaction_count(owner_address),
-        "gas": estimated_gas + 200000, 
+        "gas": estimated_gas + 400000, 
         "maxFeePerGas": max_fee_per_gas,  # Total fee
         "maxPriorityFeePerGas": max_priority_fee,  # Tip for miners
     })
