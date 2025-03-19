@@ -270,3 +270,25 @@
     object-fit: cover;
     z-index: -1; 
 }
+.show-password{
+    margin-top: 4%;
+}
+.show-password > input{
+    width: 30px;
+    text-align: left;
+    display: inline-block;
+    align-items: center;
+    border-radius: none;
+    border: none;
+    margin-right: 4%;
+   
+}
+
+.show-password > input, button{
+    outline: none;
+}
+
+.show-password input[type="checkbox"]{
+    width: 15px;
+    height: 15px;
+}

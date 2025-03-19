@@ -368,6 +368,14 @@ const LoginPage: React.FC = () => {
         displayLoadingPrompt(result.reason, result.success);
       });
   };
+  function showPassword(): void {
+    const passwordInput = document.getElementById("login_password") as HTMLInputElement | null;
+      const checkbox = document.getElementById("togglePassword") as HTMLInputElement | null;
+      if (passwordInput && checkbox) {
+        passwordInput.type = checkbox.checked ? "text" : "password";
+      }
+    
+  }
   
 
   // ----------------- JSX -----------------
@@ -413,6 +421,9 @@ const LoginPage: React.FC = () => {
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
                       />
+                     <div className='show-password'>
+                     <input type="checkbox" id='togglePassword' onClick={showPassword}/> Show Password
+                      </div>
                     </div>
                   </div>
                   <br />
