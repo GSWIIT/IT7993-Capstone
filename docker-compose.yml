@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend/FaceGuard_Dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/FaceGuard_Dashboard:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend/LoginApp:/app
+      - ./blockchain:/app/blockchain
+      - ./Backend/Requirements:/app/python_requirements
