@@ -39,4 +39,4 @@ app.register_blueprint(permissions_bp, url_prefix='/permissions')  # Prefix all 
 app.register_blueprint(account_bp, url_prefix='/account')
     
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True)
