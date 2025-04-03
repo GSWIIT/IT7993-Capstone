@@ -5,6 +5,7 @@ import backgroundvideo from "../assets/login.mp4";
 
 const LoginPage: React.FC = () => {
   const pageNavigator = useNavigate();
+  const BACKEND_IP = import.meta.env.VITE_BACKEND_API_IP;
 
   // Refs for webcam and canvas elements
   const videoRef = useRef<HTMLVideoElement>(null!);
@@ -133,7 +134,7 @@ const LoginPage: React.FC = () => {
     const photos = [base64Image1, base64Image2, base64Image3];
     setPhotoArray(photos);
 
-    fetch('http://127.0.0.1:5000/auth/checkface', {
+    fetch(`http://${BACKEND_IP}:5000/auth/checkface`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ faceArray: photos }),
@@ -237,7 +238,7 @@ const LoginPage: React.FC = () => {
       return;
     }
     displayLoadingOverlay();
-    fetch('http://127.0.0.1:5000/auth/login', {
+    fetch(`http://${BACKEND_IP}:5000/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: loginUsername, password: loginPassword }),
@@ -286,7 +287,7 @@ const LoginPage: React.FC = () => {
       count++;
       if (count >= frameCount) {
         clearInterval(captureInterval);
-        fetch('http://127.0.0.1:5000/auth/login-2FA-Face', {
+        fetch(`http://${BACKEND_IP}:5000/auth/login-2FA-Face`, {
           method: 'POST',
           credentials: "include",
           headers: { 'Content-Type': 'application/json' },
@@ -337,7 +338,7 @@ const LoginPage: React.FC = () => {
     }
     if (!confirmedUniqueUsername) {
       displayLoadingOverlay();
-      const usernameResponse = await fetch('http://127.0.0.1:5000/auth/usernamecheck', {
+      const usernameResponse = await fetch(`http://${BACKEND_IP}:5000/auth/usernamecheck`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: signupUsername }),
@@ -354,7 +355,7 @@ const LoginPage: React.FC = () => {
       return;
     }
     displayLoadingOverlay();
-    fetch('http://127.0.0.1:5000/auth/signup', {
+    fetch(`http://${BACKEND_IP}:5000/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

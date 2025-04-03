@@ -107,7 +107,7 @@ if($buildToolsProcess.ExitCode -eq 0)
 Start-Sleep -Seconds 10
 
 #install dlib wheel for Python 3.11, needed for face_recognition module
-pip install "$($PSScriptRoot)\Backend\Requirements\dlib-19.24.1-cp311-cp311-win_amd64.whl" --force-reinstall
+pip install "$($PSScriptRoot)\Backend\Requirements\dlib-19.24.1-cp311-cp311-win_amd64.whl"
 
 #install required Python packages
-pip install -r "$($PSScriptRoot)\Backend\Requirements\python_requirements.txt" --force-reinstall
+pip install -r "$($PSScriptRoot)\Backend\Requirements\python_requirements.txt"

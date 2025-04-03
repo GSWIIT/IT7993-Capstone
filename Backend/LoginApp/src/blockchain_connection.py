@@ -2,16 +2,21 @@ import os
 import json
 from web3 import Web3
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Start from the current script's directory
 script_dir = Path(__file__).resolve().parent
 
+load_dotenv()
+
 # Configurations
-ALCHEMY_API_URL = "https://eth-sepolia.g.alchemy.com/v2/Dv7X6LhBni2gxlcUzAPs51cKqdUHK-8Y"
-CONTRACT_ADDRESS = "0x0bAD6741146CdF278CAEcf26EF977b8b99Cf0D31"
-PRIVATE_KEY = "9ea2167fb16f55f70f2afca8644f9903b8f05f45c6268cf5c435b5df777c82a5"  # Owner's private key, need to delete later
+#ALCHEMY_API_URL = "https://eth-sepolia.g.alchemy.com/v2/Dv7X6LhBni2gxlcUzAPs51cKqdUHK-8Y"
+#CONTRACT_ADDRESS = "0x0bAD6741146CdF278CAEcf26EF977b8b99Cf0D31"
+#PRIVATE_KEY = "9ea2167fb16f55f70f2afca8644f9903b8f05f45c6268cf5c435b5df777c82a5"  # Owner's private key, need to delete later
 #need to set up dotenv
-#PRIVATE_KEY = os.getenv("PRIVATE_KEY")  # Owner's private key
+ALCHEMY_API_URL = os.getenv("ALCHEMY_API_URL")  # Owner's private key
+CONTRACT_ADDRESS = os.getenv("CONTRACT_ADDRESS")  # Owner's private key
+PRIVATE_KEY = os.getenv("PRIVATE_KEY")  # Owner's private key
 
 # Start from the current script's directory
 script_dir = Path(__file__).resolve().parent
