@@ -1,18 +1,20 @@
 .container {
-    margin-left: 0;
-    margin-right: 0;
+    position: absolute;
     max-width: 100%;
     width: 100%;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center; 
     background: rgba(3,9,16,255);
-    padding: 0.5%;
+    padding: 1rem clamp(1rem, 3vw, 1.2rem);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
 }
 
 #logo{
     color: rgba(85,249,239,255);
-    font-size: 45px;
+    font-size: 5vh;
     font-weight: bold;
 }
 .navbar{
@@ -25,7 +27,6 @@
     align-items: center;
     padding: 10px;
     color: white;
-    margin-right: 35%;
     margin-left: 5%;
 }
 .navbar > a {
@@ -33,8 +34,8 @@
     display: inline-block;
     color: white;
     text-align: center;
-    padding: 15px;
-    font-size: 20px;
+    padding: 1rem;
+    font-size: clamp(15px, 5vw, 20px);
 }
 .navbar > a:hover {
     background-color: rgb(144, 238, 213);
@@ -49,7 +50,7 @@
 }
 .video-container {
     position: fixed;
-    top: 97px;
+    top: 4rem;
     left: 0;
     width: 100vw;
     height: 100%;
@@ -59,7 +60,7 @@
 
 .video-container video {
     position: absolute;
-    top: 50%;
+    top: 40%;
     left: 50%;
     min-width: 100%;
     min-height: 100%;
@@ -79,7 +80,7 @@
     z-index: 1;
     color: white;
     text-align: center;
-    font-size: 4rem;
+    font-size: clamp(1rem, 3vw, 4rem);
     font-weight: bold;
 }
 .about-title{

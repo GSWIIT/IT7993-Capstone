@@ -43,7 +43,7 @@
     display: inline-block;
     text-align: center;
     padding: 1.5%;
-    font-size: 25px;
+    font-size: clamp(18px, 5vw, 23px);
 }
 .permissions-navbar > a:hover {
     color: rgba(18,166,159,255);
