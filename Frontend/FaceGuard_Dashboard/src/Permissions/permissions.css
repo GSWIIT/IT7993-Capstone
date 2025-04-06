@@ -7,7 +7,7 @@
   z-index: 1;
   color: white;
   text-align: center;
-  font-size: 4rem;
+  font-size: clamp(1rem, 3vw, 4rem);
   font-weight: bold;
 }
 .permissions-container {
