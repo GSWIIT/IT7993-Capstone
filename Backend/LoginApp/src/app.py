@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from flask_session import Session
 import logging
@@ -6,9 +7,13 @@ from permissions import permissions_bp
 from account import account_bp
 from flask_cors import CORS
 from datetime import timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
+BACKEND_IP = os.getenv("BACKEND_IP")
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True, origins="http://localhost:5173/*")
+CORS(app, supports_credentials=True, origins=[f"http://{BACKEND_IP}:5173"])
 
 #Initialize login session settings in the Flask app.
 app.config['SECRET_KEY'] = "testing"  # Change this in production
