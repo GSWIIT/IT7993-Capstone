@@ -134,7 +134,7 @@ const LoginPage: React.FC = () => {
     const photos = [base64Image1, base64Image2, base64Image3];
     setPhotoArray(photos);
 
-    fetch(`http://${BACKEND_IP}:5000/auth/checkface`, {
+    fetch(`https://faceguard-it7993.com/api/auth/checkface`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ faceArray: photos }),
@@ -238,7 +238,7 @@ const LoginPage: React.FC = () => {
       return;
     }
     displayLoadingOverlay();
-    fetch(`http://${BACKEND_IP}:5000/auth/login`, {
+    fetch(`https://faceguard-it7993.com/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: loginUsername, password: loginPassword }),
@@ -287,7 +287,7 @@ const LoginPage: React.FC = () => {
       count++;
       if (count >= frameCount) {
         clearInterval(captureInterval);
-        fetch(`http://${BACKEND_IP}:5000/auth/login-2FA-Face`, {
+        fetch(`https://faceguard-it7993.com/api/auth/login-2FA-Face`, {
           method: 'POST',
           credentials: "include",
           headers: { 'Content-Type': 'application/json' },
@@ -338,7 +338,7 @@ const LoginPage: React.FC = () => {
     }
     if (!confirmedUniqueUsername) {
       displayLoadingOverlay();
-      const usernameResponse = await fetch(`http://${BACKEND_IP}:5000/auth/usernamecheck`, {
+      const usernameResponse = await fetch(`https://faceguard-it7993.com/api/auth/usernamecheck`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: signupUsername }),
@@ -355,7 +355,7 @@ const LoginPage: React.FC = () => {
       return;
     }
     displayLoadingOverlay();
-    fetch(`http://${BACKEND_IP}:5000/auth/signup`, {
+    fetch(`https://faceguard-it7993.com/api/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

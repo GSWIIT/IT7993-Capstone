@@ -7,7 +7,7 @@
   z-index: 1;
   color: white;
   text-align: center;
-  font-size: clamp(1rem, 3vw, 4rem);
+  font-size: 4rem;
   font-weight: bold;
 }
 .permissions-container {
@@ -43,7 +43,7 @@
     display: inline-block;
     text-align: center;
     padding: 1.5%;
-    font-size: clamp(18px, 5vw, 23px);
+    font-size: 25px;
 }
 .permissions-navbar > a:hover {
     color: rgba(18,166,159,255);

@@ -5,10 +5,10 @@ Flask==3.1.0
 flask_cors==5.0.1
 flask_session==0.8.0
 ImageHash==4.3.2
-numpy==2.2.3
+numpy==1.26.4
 opencv_contrib_python==4.11.0.86
 opencv_python==4.11.0.86
 Pillow==11.1.0
 redis==5.2.1
 web3==7.8.0
-
+waitress==3.0.2

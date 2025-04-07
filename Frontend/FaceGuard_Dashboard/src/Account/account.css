@@ -18,7 +18,19 @@ button:hover{
     box-shadow: 3px 3px 3px #888888;
 }
 
-
+/* Content */
+.title{
+    margin: 5rem 0 5rem 0;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    align-items: center;
+    position: relative; /* Remove fixed positioning */
+    z-index: 1;
+    color: white;
+    text-align: center;
+    font-size: 4rem;
+    font-weight: bold;
+}
 .content-container {
     margin: auto;
     align-items: center;
@@ -30,6 +42,8 @@ button:hover{
     height: 65%;
     width: 85%;
     border-radius: 20px;
+
+
 }
 .account-navbar{
     background-color: rgb(235, 235, 235);
@@ -41,11 +55,14 @@ button:hover{
     z-index: 1000;
 }
 .account-navbar > a{
+
+    margin-left: 2%;
+    margin-right: 2%;
     color: black;
     display: inline-block;
     text-align: center;
     padding: 1.5%;
-    font-size: clamp(18px, 2vw, 23px);
+    font-size: 25px;
 }
 .account-navbar > a:hover {
     color: rgba(18,166,159,255);
@@ -72,7 +89,7 @@ button:hover{
     margin-bottom: 50%;
     overflow-y: hidden;
     overflow-x:hidden;
-    max-height: 60vh;
+    max-height: 60%;
     width: 85%;
 }
 #profile{
