@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 
 const account: React.FC = () => {
   const pageNavigator = useNavigate();
+  const BACKEND_API_DOMAIN_NAME = import.meta.env.VITE_BACKEND_API_DOMAIN_NAME;
 
   interface Logs {
     block: string;
@@ -51,7 +52,7 @@ const account: React.FC = () => {
   const [logs, setLogs] = useState<Logs[]>([]);
 
   const checkSession = async () => {
-    fetch('http://127.0.0.1:5000/auth/check-session', {
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/check-session`, {
       method: 'GET',
       credentials: "include"
     })
@@ -174,7 +175,7 @@ const account: React.FC = () => {
     const photos = [base64Image1, base64Image2, base64Image3];
     setPhotoArray(photos);
 
-    fetch('http://127.0.0.1:5000/auth/checkface', {
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/checkface`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ faceArray: photos }),
@@ -213,7 +214,7 @@ const account: React.FC = () => {
 
   const getSelf = async () => {
     showLoadingOverlay()
-    fetch('http://127.0.0.1:5000/account/get-self', {
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/get-self`, {
       method: 'GET',
       credentials: "include"
     })
@@ -231,7 +232,7 @@ const account: React.FC = () => {
   
   const onLogOutClick = () => {
     console.log("Logging out...");
-    fetch('http://127.0.0.1:5000/auth/logoff-session', {
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/logoff-session`, {
       method: 'GET',
       credentials: "include"
     })
@@ -244,7 +245,7 @@ const account: React.FC = () => {
   const onGetUserLogsClick = () => {
     showLoadingOverlay()
     console.log("Getting user logs from blockchain...");
-    fetch('http://127.0.0.1:5000/account/get-user-events', {
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/get-user-events`, {
       method: 'GET',
       credentials: "include"
     })
@@ -296,7 +297,7 @@ const account: React.FC = () => {
 
   const onSaveProfileClick = () => {
     showLoadingOverlay()
-    fetch('http://127.0.0.1:5000/account/update-profile', {
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/update-profile`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: "include",
@@ -337,7 +338,7 @@ const account: React.FC = () => {
       return
     }
 
-    fetch('http://127.0.0.1:5000/account/update-password', {
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/update-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: "include",
@@ -357,7 +358,7 @@ const account: React.FC = () => {
 
   const onConfirmNewFacePhotos = () => {
     showLoadingOverlay();
-    fetch('http://127.0.0.1:5000/account/update-face-hashes', {
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/update-face-hashes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: "include",
@@ -375,7 +376,7 @@ const account: React.FC = () => {
 
   const onDeleteSelfClick = () => {
     showLoadingOverlay();
-    fetch('http://127.0.0.1:5000/account/delete-self', {
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/delete-self`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       credentials: "include"      

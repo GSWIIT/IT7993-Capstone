@@ -14,7 +14,7 @@ import io
 import face_recognition
 from functools import wraps
 from datetime import datetime
-from blockchain_connection import get_contract, get_w3_object, get_owner_address, get_private_key
+from blockchain_connection import get_contract, get_w3_object, get_owner_address, get_private_key, write_to_blockchain
 
 login_bp = Blueprint('login', __name__, template_folder='templates')
 
@@ -91,10 +91,14 @@ def login():
                 return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
 
 def send_login_success_log(username):
-    #get the current date in YYYY_MM_DD format, used for creation date of account
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    current_date = str(current_date)
+    print("Sending login success log...")
+    result = write_to_blockchain(contract.functions.emitLoginSuccessLog, [username])
+    if(result.success == True):
+        print(f"User [{username}] login log transaction sent to blockchain.")
+    else:
+        print(f"ERROR: Could not send user [{username} login log transaction!]")
 
+    """
     print("Estimating gas...")
     #estimate the cost of the ethereum transaction by predicting gas
     estimated_gas = contract.functions.emitLoginSuccessLog(username).estimate_gas({"from": owner_address})
@@ -118,7 +122,7 @@ def send_login_success_log(username):
 
     # Send transaction to blockchain
     tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-    #w3.eth.wait_for_transaction_receipt(tx_hash)
+    #w3.eth.wait_for_transaction_receipt(tx_hash)"""
 
 @login_bp.route('/login-2FA-Face', methods=['POST'])
 def check_face_for_2FA():

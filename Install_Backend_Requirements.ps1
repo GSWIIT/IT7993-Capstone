@@ -23,6 +23,24 @@ else
     Write-Host "CMake detected." -ForegroundColor Green
 }
 
+Write-Host "Checking to see if Python 3.11 is installed..."
+#check CMake requirement
+$python = Get-Package | Where-Object {$_.Name -like "Python 3.11*"}
+if ((Measure-Object -InputObject $cmake).Count -lt 1)
+{
+    #install MSI
+    Write-Host "Please wait while Python 3.11 is installed..."
+    $pythonInstallerProcess = Start-Process -FilePath "$($PSScriptRoot)\Backend\Requirements\python-3.11.9-amd64.exe" -ArgumentList "/quiet", "InstallAllUsers=1", "PrependPath=1", "AppendPath=1" -Wait -PassThru
+    if($pythonInstallerProcess.ExitCode -eq 0)
+    {
+        Write-Host "`nPython 3.11 installed successfully!" -ForegroundColor Green
+    }
+}
+else 
+{
+    Write-Host "Python 3.11 detected." -ForegroundColor Green
+}
+
 Write-Host "Checking to see if Node.JS is installed..."
 #check NodeJS requirement
 $nodeJS = Get-Package | Where-Object {$_.Name -eq "Node.JS"}
@@ -74,7 +92,7 @@ try
     $npmVersion = & npm -v
     if($null -ne $npmVersion)
     {
-        Write-Host "Node.JS detected! Version: $($npmVersion)"
+        Write-Host "NPM detected! Version: $($npmVersion)"
     }
 }
 catch 

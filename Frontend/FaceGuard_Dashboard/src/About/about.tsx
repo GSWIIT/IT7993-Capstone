@@ -3,36 +3,43 @@ import { useNavigate } from "react-router-dom";
 import "./about.css";
 import backgroundvideo from "../assets/backgroundvideo.mp4";
 import { Link } from "react-router-dom";
+import alchemyLogo from "../assets/Alchemy.png";
+import ethereumLogo from "../assets/ethereum-text.png";
+import openCVLogo from "../assets/OpenCV.png";
 
 const about: React.FC = () => {
   const navigator = useNavigate();
+  const BACKEND_API_DOMAIN_NAME = import.meta.env.VITE_BACKEND_API_DOMAIN_NAME;
 
   const checkSession = async () => {
-    fetch("http://127.0.0.1:5000/auth/check-session", {
-      method: "GET",
-      credentials: "include",
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/check-session`, {
+      method: 'GET',
+      credentials: "include"
     })
-      .then((response) => response.json())
-      .then((result) => {
-        if (result.logged_in == false) {
-          console.log("No login session detected!");
-          navigator("/");
-        } else {
-          console.log("Session: ", result);
-        }
-      });
+    .then((response) => response.json())
+    .then((result) => {
+      if(result.logged_in == false)
+      {
+        console.log("No login session detected!")
+        navigator("/")
+      }
+      else
+      {
+        console.log("Session: ", result)
+      }
+    })
   };
-
+  
   const onLogOutClick = () => {
     console.log("Logging out...");
-    fetch("http://127.0.0.1:5000/auth/logoff-session", {
-      method: "GET",
-      credentials: "include",
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/logoff-session`, {
+      method: 'GET',
+      credentials: "include"
     })
       .then((response) => response.json())
       .then(() => {
-        navigator("/");
-      });
+        window.location.href = '';
+      })
   };
 
   useEffect(() => {
@@ -98,19 +105,19 @@ const about: React.FC = () => {
               <div className="about-pics">
                 <ul className="about-list">
                   <li>
-                    <img src="/src/assets/OpenCV.png" alt="opencv" />
+                    <img src={openCVLogo} alt="opencv" />
                   </li>
                   <li>
                     <img
                       width="250px"
-                      src="/src/assets/ethereum-text.png"
+                      src={ethereumLogo}
                       alt="ethereum"
                     />
                   </li>
                   <li>
                     <img
                       width="140px"
-                      src="/src/assets/Alchemy.png"
+                      src={alchemyLogo}
                       alt="alchemy"
                     />
                   </li>

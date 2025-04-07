@@ -6,8 +6,10 @@ import backgroundvideo from "../assets/backgroundvideo.mp4";
 
 const home: React.FC = () => {
   const navigator = useNavigate()
+  const BACKEND_API_DOMAIN_NAME = import.meta.env.VITE_BACKEND_API_DOMAIN_NAME;
+
   const checkSession = async () => {
-    fetch('http://127.0.0.1:5000/auth/check-session', {
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/check-session`, {
       method: 'GET',
       credentials: "include"
     })
@@ -27,7 +29,7 @@ const home: React.FC = () => {
   
   const onLogOutClick = () => {
     console.log("Logging out...");
-    fetch('http://127.0.0.1:5000/auth/logoff-session', {
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/logoff-session`, {
       method: 'GET',
       credentials: "include"
     })

@@ -3,11 +3,16 @@ import json
 from web3 import Web3
 from pathlib import Path
 from dotenv import load_dotenv
+from threading import Lock
+import time
 
 # Start from the current script's directory
 script_dir = Path(__file__).resolve().parent
 
 load_dotenv()
+
+#the lock is used to only process one transaction at a time, to keep the nonce updated properly
+tx_lock = Lock()
 
 # Configurations
 #ALCHEMY_API_URL = "https://eth-sepolia.g.alchemy.com/v2/Dv7X6LhBni2gxlcUzAPs51cKqdUHK-8Y"
@@ -72,3 +77,35 @@ def get_owner_address():
 
 def get_private_key():
     return PRIVATE_KEY
+
+def write_to_blockchain(w3_function, w3_arguments):
+    with tx_lock:
+        try:
+            estimated_gas = w3_function(*w3_arguments).estimate_gas({"from": owner_address})
+        except Exception as e:
+            return {"success": False, "reason": "Blockchain exception caught! Error:" + str(e.args[0]) + "!"}
+        
+        try:
+            # Get the suggested gas price
+            gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
+            max_priority_fee = w3.to_wei("4", "gwei")  # Priority fee (adjust based on congestion)
+            max_fee_per_gas = gas_price + max_priority_fee
+
+            tx = w3_function(*w3_arguments).build_transaction({
+                "from": owner_address,
+                "nonce": w3.eth.get_transaction_count(owner_address),
+                "gas": estimated_gas + 50000,
+                "maxFeePerGas": max_fee_per_gas,  # Total fee
+                "maxPriorityFeePerGas": max_priority_fee,  # Tip for miners
+            })
+
+            # Sign transaction with private key
+            signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
+
+            # Send transaction to blockchain
+            tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+
+            return {"success": True, "transaction": tx_hash}
+        except Exception as e:
+            return {"success": False, "reason": "Python exception caught! Error:" + str(e.args[0]) + "!"}
+        

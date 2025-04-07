@@ -3,6 +3,11 @@ import { useNavigate } from "react-router-dom";
 import "./permissions.css"
 import { Link } from "react-router-dom";
 import backgroundvideo from "../assets/backgroundvideo.mp4";
+import userIcon from '../assets/user.png';
+import deleteUserIcon from '../assets/delete_user.png';
+import deleteIcon from '../assets/delete.png';
+import viewIcon from '../assets/view.png';
+import editIcon from '../assets/edit.png';
 
 interface Group {
   name: string;
@@ -31,6 +36,7 @@ interface Logs {
 
 const Permissions: React.FC = () => {
   const navigator = useNavigate()
+  const BACKEND_API_DOMAIN_NAME = import.meta.env.VITE_BACKEND_API_DOMAIN_NAME;
 
   const [usersLoaded, setUsersLoaded] = useState(false)
   const [groupsLoaded, setGroupsLoaded] = useState(false)
@@ -84,7 +90,7 @@ const Permissions: React.FC = () => {
     if(editingGroup != null)
     {
       console.log("Update group:", editingGroup.name, " to ", groupName, "with permissions:", permissionsArray);
-      await fetch('http://127.0.0.1:5000/permissions/update-group', {
+      await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/permissions/update-group`, {
         method: 'POST',
         credentials: "include",
         headers: { 'Content-Type': 'application/json' },
@@ -107,7 +113,7 @@ const Permissions: React.FC = () => {
     else
     {
       console.log("Creating group:", groupName, "with permissions:", permissionsArray);
-      await fetch('http://127.0.0.1:5000/permissions/create-group', {
+      await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/permissions/create-group`, {
         method: 'POST',
         credentials: "include",
         headers: { 'Content-Type': 'application/json' },
@@ -149,7 +155,7 @@ const Permissions: React.FC = () => {
     {
       setSelectedUser(user || null);
       showLoadingOverlay();
-      await fetch(`http://127.0.0.1:5000/account/get-user-events?username=${encodeURIComponent(user.username)}`, {
+      await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/get-user-events?username=${encodeURIComponent(user.username)}`, {
         method: 'GET',
         credentials: "include",
       })
@@ -174,7 +180,7 @@ const Permissions: React.FC = () => {
   const handleAddUser = async () => {
     if (newUser.trim() && selectedGroup) {
       showLoadingOverlay()
-      await fetch('http://127.0.0.1:5000/permissions/add-group-user', {
+      await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/permissions/add-group-user`, {
         method: 'POST',
         credentials: "include",
         headers: { 'Content-Type': 'application/json' },
@@ -201,7 +207,7 @@ const Permissions: React.FC = () => {
   const handleDeleteUser = async (usernameToRemove: string) => {
     if (selectedGroup) {
       showLoadingOverlay()
-      await fetch('http://127.0.0.1:5000/permissions/remove-group-user', {
+      await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/permissions/remove-group-user`, {
         method: 'POST',
         credentials: "include",
         headers: { 'Content-Type': 'application/json' },
@@ -242,7 +248,7 @@ const Permissions: React.FC = () => {
   };
 
   const checkSession = async () => {
-    await fetch('http://127.0.0.1:5000/auth/check-session', {
+    await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/check-session`, {
       method: 'GET',
       credentials: "include"
     })
@@ -261,7 +267,7 @@ const Permissions: React.FC = () => {
   };
 
   const getUsers = async () => {
-    await fetch('http://127.0.0.1:5000/permissions/get-users', {
+    await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/permissions/get-users`, {
       method: 'GET',
       credentials: "include"
     })
@@ -281,7 +287,7 @@ const Permissions: React.FC = () => {
   }
 
   const getGroups = async () => {
-    await fetch('http://127.0.0.1:5000/permissions/get-groups', {
+    await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/permissions/get-groups`, {
       method: 'GET',
       credentials: "include"
     })
@@ -309,7 +315,7 @@ const Permissions: React.FC = () => {
 
   const deleteGroup = async (groupName: string) => {
     showLoadingOverlay()
-    await fetch('http://127.0.0.1:5000/permissions/delete-group', {
+    await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/permissions/delete-group`, {
       method: 'POST',
       credentials: "include",
       headers: { 'Content-Type': 'application/json' },
@@ -331,7 +337,7 @@ const Permissions: React.FC = () => {
   }
 
   const getPermissions = async () => {
-    await fetch('http://127.0.0.1:5000/permissions/get-user-permissions', {
+    await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/permissions/get-user-permissions`, {
       method: 'GET',
       credentials: "include"
     })
@@ -363,7 +369,7 @@ const Permissions: React.FC = () => {
 
   const onLogOutClick = () => {
     console.log("Logging out...");
-    fetch('http://127.0.0.1:5000/auth/logoff-session', {
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/logoff-session`, {
       method: 'GET',
       credentials: "include"
     })
@@ -481,7 +487,7 @@ const Permissions: React.FC = () => {
                     <tr key={index}>
                       <td>{username}</td>
                       <td>
-                        <button className="detete-btn-icon" onClick={() => handleDeleteUser(username)}><img src="/src/assets/delete_user.png"/></button>
+                        <button className="detete-btn-icon" onClick={() => handleDeleteUser(username)}><img src={deleteUserIcon}/></button>
                       </td>
                     </tr>
                   ))}
@@ -534,7 +540,7 @@ const Permissions: React.FC = () => {
                       <tr key={index}>
                         <td>{permission}</td>
                         <td>
-                          <button className="detete-btn-icon" onClick={() => handleDeletePermission(permission)}><img  src="/src/assets/delete.png"/></button>
+                          <button className="detete-btn-icon" onClick={() => handleDeletePermission(permission)}><img  src={deleteIcon}/></button>
                         </td>
                       </tr>
                     ))}
@@ -608,7 +614,7 @@ const Permissions: React.FC = () => {
                       <tr key={user.username}>
                         <td>
                           <ul className="ul-user-icon" >
-                            <li><img src="/src/assets/user.png"/> </li>
+                            <li><img src={userIcon}/> </li>
                             <li>{user.username}</li>  
                           </ul>
                         </td>
@@ -618,7 +624,7 @@ const Permissions: React.FC = () => {
                         <td>{user.lastEditDate}</td>
                         <td>{`${user.enabled}`}</td>
                         <td>
-                          <button className="edit-btn-icon" onClick={() => toggleUserLogsOverlay(user)}><img className="view-btn-icon" src="/src/assets/view.png"/></button>
+                          <button className="edit-btn-icon" onClick={() => toggleUserLogsOverlay(user)}><img className="view-btn-icon" src={viewIcon}/></button>
                         </td>
                       </tr>
                     ))}
@@ -659,13 +665,13 @@ const Permissions: React.FC = () => {
                             </ul>
                           </td>
                           <td>
-                          <button className="edit-btn-icon" onClick={() => toggleEditUsersOverlay(group)}><img className="btn-icon" src="/src/assets/edit.png"/></button>
+                          <button className="edit-btn-icon" onClick={() => toggleEditUsersOverlay(group)}><img className="btn-icon" src={editIcon}/></button>
                           </td>
                           <td>
-                            <button className="edit-btn-icon" onClick={() => toggleModal(group)}><img className="btn-icon" src="/src/assets/edit.png"/></button>
+                            <button className="edit-btn-icon" onClick={() => toggleModal(group)}><img className="btn-icon" src={editIcon}/></button>
                           </td>
                           <td>
-                            <button className="detete-btn-icon" onClick={() => deleteGroup(group.name)}><img className="btn-icon" src="/src/assets/delete.png"/></button>
+                            <button className="detete-btn-icon" onClick={() => deleteGroup(group.name)}><img className="btn-icon" src={deleteIcon}/></button>
                           </td>
                         </tr>
                       ))}

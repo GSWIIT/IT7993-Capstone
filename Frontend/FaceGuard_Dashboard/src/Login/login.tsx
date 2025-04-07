@@ -2,10 +2,12 @@ import React, { useRef, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import './login.css';
 import backgroundvideo from "../assets/login.mp4";
+import ethereumLogo from "../assets/ethereum.png";
+import errorIcon from "../assets/error icon.png";
 
 const LoginPage: React.FC = () => {
   const pageNavigator = useNavigate();
-  const BACKEND_IP = import.meta.env.VITE_BACKEND_API_IP;
+  const BACKEND_API_DOMAIN_NAME = import.meta.env.VITE_BACKEND_API_DOMAIN_NAME;
 
   // Refs for webcam and canvas elements
   const videoRef = useRef<HTMLVideoElement>(null!);
@@ -134,7 +136,7 @@ const LoginPage: React.FC = () => {
     const photos = [base64Image1, base64Image2, base64Image3];
     setPhotoArray(photos);
 
-    fetch(`https://faceguard-it7993.com/api/auth/checkface`, {
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/checkface`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ faceArray: photos }),
@@ -238,7 +240,7 @@ const LoginPage: React.FC = () => {
       return;
     }
     displayLoadingOverlay();
-    fetch(`https://faceguard-it7993.com/api/auth/login`, {
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: loginUsername, password: loginPassword }),
@@ -287,7 +289,7 @@ const LoginPage: React.FC = () => {
       count++;
       if (count >= frameCount) {
         clearInterval(captureInterval);
-        fetch(`https://faceguard-it7993.com/api/auth/login-2FA-Face`, {
+        fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/login-2FA-Face`, {
           method: 'POST',
           credentials: "include",
           headers: { 'Content-Type': 'application/json' },
@@ -338,7 +340,7 @@ const LoginPage: React.FC = () => {
     }
     if (!confirmedUniqueUsername) {
       displayLoadingOverlay();
-      const usernameResponse = await fetch(`https://faceguard-it7993.com/api/auth/usernamecheck`, {
+      const usernameResponse = await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/usernamecheck`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: signupUsername }),
@@ -355,7 +357,7 @@ const LoginPage: React.FC = () => {
       return;
     }
     displayLoadingOverlay();
-    fetch(`https://faceguard-it7993.com/api/auth/signup`, {
+    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -513,7 +515,7 @@ const LoginPage: React.FC = () => {
                 {showLoadingGraphics && (
                   <div id="loadingGraphics">
                     <img
-                      src="/src/assets/ethereum.png"
+                      src={ethereumLogo}
                       alt="Ethereum Logo"
                       className="loading-image"
                     />
@@ -530,8 +532,8 @@ const LoginPage: React.FC = () => {
                       id="loadingPromptImage"
                       src={
                         loadingPromptSuccess
-                          ? '/src/assets/ethereum.png'
-                          : '/src/assets/error icon.png'
+                          ? {ethereumLogo}.ethereumLogo
+                          : {errorIcon}.errorIcon
                       }
                       alt="Prompt"
                       className="error-image"
