@@ -372,5 +372,6 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         if "username" not in session:
             return jsonify({"error": "Unauthorized"}), 401  # 🔹 Return 401 if no session
+        session.permanent = True
         return f(*args, **kwargs)  # 🔹 Proceed if user is authenticated
     return decorated_function

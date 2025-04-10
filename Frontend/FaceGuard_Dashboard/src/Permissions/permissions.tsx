@@ -544,19 +544,18 @@ const Permissions: React.FC = () => {
                 <h2>{editMode ? "Edit Group" : "Create a Group"}</h2>
                 <div className="add-permissions-container">
                   <input
-                    type="text"
-                    placeholder="Group Name"
-                    value={groupName}
-                    onChange={(e) => setGroupName(e.target.value)}
-                  />
+                      type="text"
+                      placeholder="Group Name"
+                      value={groupName}
+                      onChange={(e) => setGroupName(e.target.value)}
+                    />
                   <input
-                    type="text"
-                    placeholder="Enter permission"
-                    value={newPermission}
-                    onChange={(e) => setNewPermission(e.target.value)}
-                  />
+                      type="text"
+                      placeholder="Access URL"
+                      value="www.google.com"
+                      onChange={(e) => setGroupName(e.target.value)}
+                    />
                 </div>
-                <button onClick={handleAddPermission} className="add-permission-button">Add</button>
                 <table className="permissions-table">
                   <thead>
                     <tr>
@@ -575,6 +574,15 @@ const Permissions: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+                <div className="add-permissions-container">
+                  <input
+                    type="text"
+                    placeholder="Enter permission"
+                    value={newPermission}
+                    onChange={(e) => setNewPermission(e.target.value)}
+                  />
+                </div>
+                <button onClick={handleAddPermission} className="add-permission-button">Add</button>
                 <div className="modal-buttons">
                   <button onClick={handleCreateGroup} className="modal-submit">{editMode ? "Save Changes" : "Submit"}</button>
                   <button onClick={() => toggleModal()} className="modal-cancel">Cancel</button>

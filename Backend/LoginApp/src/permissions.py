@@ -236,6 +236,33 @@ def update_group():
     else:
         return jsonify({"success": False, "reason": "User does not have permission to perform this action!"})
     
+    #protected with login_required decorator function
+@permissions_bp.route('/update-group-access-url', methods=['POST'])
+@login_required
+def update_group_access_url():
+    data = request.get_json()
+    groupName = data.get("groupName")
+    groupURL = data.get("accessURL")
+
+    has_update_group_permissions = check_if_user_has_permission(session["username"], ["FaceGuard Update: All", "FaceGuard Update: Groups"])
+    print("User [" + str(session["username"]) + "] has permission to update groups: ", has_update_group_permissions)
+
+    if has_update_group_permissions:
+        #estimate the cost of the ethereum transaction by predicting gas
+        transaction = write_to_blockchain(contract.functions.setGroupURL, [groupName, groupURL])
+
+        # Wait for confirmation of transaction
+        receipt = w3.eth.wait_for_transaction_receipt(transaction)
+
+        # Print transaction status
+        if receipt.status == 1:
+            print("Updated group name successfully.", "Group permissions updated successfully.")
+            return jsonify({"success": True, "reason": "Group permissions updated successfully."})
+        else:
+            return jsonify({"success": False, "reason": "Error encountered while writing to the blockchain..."})
+    else:
+        return jsonify({"success": False, "reason": "User does not have permission to perform this action!"})
+    
 #protected with login_required decorator function
 @permissions_bp.route('/add-group-user', methods=['POST'])
 @login_required
