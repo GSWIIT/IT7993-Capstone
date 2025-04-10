@@ -66,6 +66,11 @@ owner_account = w3.eth.account.from_key(PRIVATE_KEY)
 owner_address = owner_account.address
 w3.eth.default_account = owner_address
 
+#we must keep track of the nonce manually to allow for true asynchronous transactions
+current_nonce = w3.eth.get_transaction_count(owner_address)
+
+print("Nonce", current_nonce)
+
 def get_contract():
     return CONTRACT
 
@@ -79,13 +84,18 @@ def get_private_key():
     return PRIVATE_KEY
 
 def write_to_blockchain(w3_function, w3_arguments):
+    global current_nonce #referencing the variable created above the function
+
     with tx_lock:
         try:
+            print(f"Estimating gas for function [{w3_function}] with arguments [{w3_arguments}]...")
             estimated_gas = w3_function(*w3_arguments).estimate_gas({"from": owner_address})
+            print(f"Estimated gas: {estimated_gas}...")
         except Exception as e:
-            return {"success": False, "reason": "Blockchain exception caught! Error:" + str(e.args[0]) + "!"}
+            raise Exception("Blockchain exception caught! Error:" + str(e.args[0]) + "!")
         
         try:
+            nonce = current_nonce
             # Get the suggested gas price
             gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
             max_priority_fee = w3.to_wei("4", "gwei")  # Priority fee (adjust based on congestion)
@@ -93,7 +103,7 @@ def write_to_blockchain(w3_function, w3_arguments):
 
             tx = w3_function(*w3_arguments).build_transaction({
                 "from": owner_address,
-                "nonce": w3.eth.get_transaction_count(owner_address),
+                "nonce": nonce,
                 "gas": estimated_gas + 50000,
                 "maxFeePerGas": max_fee_per_gas,  # Total fee
                 "maxPriorityFeePerGas": max_priority_fee,  # Tip for miners
@@ -101,11 +111,11 @@ def write_to_blockchain(w3_function, w3_arguments):
 
             # Sign transaction with private key
             signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
-
+            print("Sending transaction...")
             # Send transaction to blockchain
             tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-
-            return {"success": True, "transaction": tx_hash}
+            current_nonce += 1 #add to the global variable to ensure that every transaction has a unique nonce. Needed for true async processing.
+            print("Transaction sent! Nonce variable updated, new nonce is:", current_nonce)
+            return tx_hash
         except Exception as e:
-            return {"success": False, "reason": "Python exception caught! Error:" + str(e.args[0]) + "!"}
-        
+            raise Exception("Python exception occurred! Error:" + str(e.args[0]) + "!")

@@ -1,12 +1,9 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
+from flask import Blueprint, request, session, jsonify
 from web3 import Web3
-import os
-import json
 from login import login_required
-from functools import wraps
-from blockchain_connection import get_contract, get_w3_object, get_owner_address, get_private_key, CONTRACT_ADDRESS
-import time
+from blockchain_connection import get_contract, get_w3_object, write_to_blockchain
 from login import hash_password, create_lsh_from_image
+from permissions import check_if_user_has_permission
 from hexbytes import HexBytes  # Import this for type checking
 import datetime
 
@@ -14,244 +11,150 @@ account_bp = Blueprint('account', __name__, template_folder='templates')
 
 contract = get_contract()
 w3 = get_w3_object()
-owner_address = get_owner_address()
-PRIVATE_KEY = get_private_key()
-
-class HexJsonEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, HexBytes):
-            return obj.hex()
-        return super().default(obj)
 
 #protected with login_required decorator function
 @account_bp.route('/get-self', methods=['GET'])
 @login_required
 def get_self():
-    #get user permissions first
-    permissions = contract.functions.getUserPermissions(session["username"]).call()
+    try:
+        has_read_self = check_if_user_has_permission(session["username"], "FaceGuard Read: Self")
 
-    has_read_self = any("FaceGuard Read: Self" in perm for perm in permissions)
-
-    if(has_read_self):
-        user = contract.functions.getUser(session["username"]).call()
-        return jsonify ({"success": True, "reason": "User retrieved successfully.", "user": user})
-    else:
-        return jsonify ({"success": False, "reason": "User does not have permission to perform this action.", "user": None})
+        if(has_read_self):
+            user = contract.functions.getUser(session["username"]).call()
+            return jsonify ({"success": True, "reason": "User retrieved successfully.", "user": user})
+        else:
+            return jsonify ({"success": False, "reason": "User does not have permission to perform this action.", "user": None})
+    except Exception as e:
+        return jsonify ({"success": False, "reason": "Internal server error: "  + str(e.args[0]) + "!"})
     
 #protected with login_required decorator function
 @account_bp.route('/update-profile', methods=['POST'])
 @login_required
 def update_profile():
-    data = request.get_json()
-    email = data.get("email")
-    fullName = data.get("fullName")
+    try:
+        data = request.get_json()
+        email = data.get("email")
+        fullName = data.get("fullName")
 
-    emailUpdated = False
-    fullNameUpdated = False
+        emailUpdated = False
+        fullNameUpdated = False
 
-    #get user permissions first
-    permissions = contract.functions.getUserPermissions(session["username"]).call()
+        has_update_self = check_if_user_has_permission(session["username"], "FaceGuard Update: Self")
 
-    has_read_self = any("FaceGuard Read: Self" in perm for perm in permissions)
+        if has_update_self:
+            user = contract.functions.getUser(session["username"]).call()
+            print(user[7], user[8])
+            if(user[7] != email):
+                emailUpdated = True
 
-    if has_read_self:
-        user = contract.functions.getUser(session["username"]).call()
-        print(user[7], user[8])
-        if(user[7] != email):
-            emailUpdated = True
+            if(user[8] != fullName):
+                fullNameUpdated = True
 
-        if(user[8] != fullName):
-            fullNameUpdated = True
+            if(emailUpdated):
+                print("Email needs to be updated...")
+                transaction = write_to_blockchain(contract.functions.updateUserEmail, [session["username"], email])
 
-        if(emailUpdated):
-            print("Email needs to be updated. Estimating gas...")
-            try:
-                estimated_gas = contract.functions.updateUserEmail(session["username"], email).estimate_gas({"from": owner_address})
-            except Exception as e:
-                return jsonify ({"success": False, "reason": "Error encountered! Blockchain Response[" + str(e.args[0]) + "]."})
+                # Wait for confirmation of transaction
+                receipt = w3.eth.wait_for_transaction_receipt(transaction)
 
-            # Get the suggested gas price
-            gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
-            max_priority_fee = w3.to_wei("4", "gwei")  # Priority fee (adjust based on congestion)
-            max_fee_per_gas = gas_price + max_priority_fee
+                # Print transaction status
+                if receipt.status == 1:
+                    print("Updated user email successfully.")
+                else:
+                    raise Exception("ERROR: BlockChain failed to write transaction to blockchain!")
 
-            tx = contract.functions.updateUserEmail(session["username"], email).build_transaction({
-                "from": owner_address,
-                "nonce": w3.eth.get_transaction_count(owner_address),
-                "gas": estimated_gas + 200000, 
-                "maxFeePerGas": max_fee_per_gas,  # Total fee
-                "maxPriorityFeePerGas": max_priority_fee,  # Tip for miners
-            })
+            if(fullNameUpdated):
+                print("Full name needs to be updated...")
+                transaction = write_to_blockchain(contract.functions.updateUserFullName, [session["username"], fullName])
 
-            # Sign transaction with private key
-            signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
+                # Wait for confirmation of transaction
+                receipt = w3.eth.wait_for_transaction_receipt(transaction)
 
-            print("Sending email update transaction...")
-            # Send transaction to blockchain
-            tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+                # Print transaction status
+                if receipt.status == 1:
+                    print("Updated user email successfully.")
+                else:
+                    raise Exception("ERROR: BlockChain failed to write transaction to blockchain!")
 
-            # Wait for confirmation of transaction
-            receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-
-            # Print transaction status
-            if receipt.status == 1:
-                print("Updated user email successfully.")
-
-        if(fullNameUpdated):
-            print("Full name needs to be updated. Estimating gas...")
-            try:
-                estimated_gas = contract.functions.updateUserFullName(session["username"], fullName).estimate_gas({"from": owner_address})
-            except Exception as e:
-                return jsonify ({"success": False, "reason": "Error encountered! Blockchain Response[" + str(e.args[0]) + "]."})
-
-            # Get the suggested gas price
-            gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
-            max_priority_fee = w3.to_wei("4", "gwei")  # Priority fee (adjust based on congestion)
-            max_fee_per_gas = gas_price + max_priority_fee
-
-            tx = contract.functions.updateUserFullName(session["username"], fullName).build_transaction({
-                "from": owner_address,
-                "nonce": w3.eth.get_transaction_count(owner_address),
-                "gas": estimated_gas + 200000, 
-                "maxFeePerGas": max_fee_per_gas,  # Total fee
-                "maxPriorityFeePerGas": max_priority_fee,  # Tip for miners
-            })
-
-            # Sign transaction with private key
-            signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
-
-            print("Sending full name update transaction...")
-            # Send transaction to blockchain
-            tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-
-            # Wait for confirmation of transaction
-            receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-
-            # Print transaction status
-            if receipt.status == 1:
-                print("Updated user full name successfully.")
-
-    return jsonify ({"success": True, "reason": "Request completed successfully!"})
+            return jsonify ({"success": True, "reason": "Request completed successfully!"})
+        else:
+            return jsonify ({"success": False, "reason": "User does not have permission to perform this action!"})
+    except Exception as e:
+        return jsonify ({"success": False, "reason": "Internal server error: "  + str(e.args[0]) + "!"})
 
 #protected with login_required decorator function
 @account_bp.route('/update-password', methods=['POST'])
 @login_required
 def update_password():
-    data = request.get_json()
-    password = data.get("password")
+    try:
+        data = request.get_json()
+        password = data.get("password")
 
-    #get user permissions first
-    permissions = contract.functions.getUserPermissions(session["username"]).call()
+        has_update_self = check_if_user_has_permission(session["username"], "FaceGuard Update: Self")
 
-    has_update_self = any("FaceGuard Read: Self" in perm for perm in permissions)
+        if has_update_self:
+            password = hash_password(password)
 
-    if has_update_self:
-        password = hash_password(password)
+            print("Password needs to be updated.")
+            transaction = write_to_blockchain(contract.functions.updateUserPassword, [session["username"], password])
 
-        print("Password needs to be updated. Estimating gas...")
-        try:
-            estimated_gas = contract.functions.updateUserPassword(session["username"], password).estimate_gas({"from": owner_address})
-        except Exception as e:
-            return jsonify ({"success": False, "reason": "Error encountered! Blockchain Response[" + str(e.args[0]) + "]."})
+            # Wait for confirmation of transaction
+            receipt = w3.eth.wait_for_transaction_receipt(transaction)
 
-        # Get the suggested gas price
-        gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
-        max_priority_fee = w3.to_wei("4", "gwei")  # Priority fee (adjust based on congestion)
-        max_fee_per_gas = gas_price + max_priority_fee
-
-        tx = contract.functions.updateUserPassword(session["username"], password).build_transaction({
-            "from": owner_address,
-            "nonce": w3.eth.get_transaction_count(owner_address),
-            "gas": estimated_gas + 200000, 
-            "maxFeePerGas": max_fee_per_gas,  # Total fee
-            "maxPriorityFeePerGas": max_priority_fee,  # Tip for miners
-        })
-
-        # Sign transaction with private key
-        signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
-
-        print("Sending password update transaction...")
-        # Send transaction to blockchain
-        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-
-        # Wait for confirmation of transaction
-        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-
-        # Print transaction status
-        if receipt.status == 1:
-            print("Updated user password successfully.")
-            return jsonify ({"success": True, "reason": "Password updated successfully!"})
+            # Print transaction status
+            if receipt.status == 1:
+                print("Updated user password successfully.")
+                return jsonify ({"success": True, "reason": "Password updated successfully!"})
+            else:
+                return jsonify ({"success": False, "reason": "There was an issue writing to the blockchain..."})
         else:
-            return jsonify ({"success": False, "reason": "There was an issue writing to the blockchain..."})
-    else:
-        return jsonify ({"success": False, "reason": "User does not have permission to peform this action!"})
+            return jsonify ({"success": False, "reason": "User does not have permission to peform this action!"})
+    except Exception as e:
+        return jsonify ({"success": False, "reason": "Internal server error: " + str(e.args[0]) + "!"})
     
 #protected with login_required decorator function
 @account_bp.route('/update-face-hashes', methods=['POST'])
 @login_required
 def update_face_hashes():
-    data = request.get_json()
-    faceArray = data.get("faceArray")
+    try:
+        data = request.get_json()
+        faceArray = data.get("faceArray")
 
-    #get user permissions first
-    permissions = contract.functions.getUserPermissions(session["username"]).call()
+        has_update_self = check_if_user_has_permission(session["username"], "FaceGuard Update: Self")
 
-    has_update_self = any("FaceGuard Read: Self" in perm for perm in permissions)
+        if has_update_self:
+            #get face hash data from images. This also verifies that the photos actually have faces in them.
+            face_image_data = []
+            for img in faceArray:
+                #result = scan_image_for_face(img)
+                result = create_lsh_from_image(img)
+                if result["success"]:
+                    face_image_data.append(result)
+                else:
+                    return jsonify ({"success": False, "reason": result["reason"]})
+                
+            print("Face hashes obtained.")
 
-    if has_update_self:
-        #get face hash data from images. This also verifies that the photos actually have faces in them.
-        face_image_data = []
-        for img in faceArray:
-            #result = scan_image_for_face(img)
-            result = create_lsh_from_image(img)
-            if result["success"]:
-                face_image_data.append(result)
+            face_hash_array = []
+            for face in face_image_data:
+                face_hash_array.append(face["hash"])
+
+            print("Face hashes need to be updated...")
+            transaction = write_to_blockchain(contract.functions.updateUserFaceHash, [session["username"], face_hash_array])
+
+            # Wait for confirmation of transaction
+            receipt = w3.eth.wait_for_transaction_receipt(transaction)
+
+            # Print transaction status
+            if receipt.status == 1:
+                print("Updated user face hashes successfully.")
+                return jsonify ({"success": True, "reason": "Facial Recognition updated successfully!"})
             else:
-                return jsonify ({"success": False, "reason": result["reason"]})
-            
-        print("Face hashes obtained.")
-
-        face_hash_array = []
-        for face in face_image_data:
-            face_hash_array.append(face["hash"])
-
-        print("Face hashes need to be updated. Estimating gas...")
-        try:
-            estimated_gas = contract.functions.updateUserFaceHash(session["username"], face_hash_array).estimate_gas({"from": owner_address})
-        except Exception as e:
-            return jsonify ({"success": False, "reason": "Error encountered! Blockchain Response[" + str(e.args[0]) + "]."})
-
-        # Get the suggested gas price
-        gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
-        max_priority_fee = w3.to_wei("4", "gwei")  # Priority fee (adjust based on congestion)
-        max_fee_per_gas = gas_price + max_priority_fee
-
-        tx = contract.functions.updateUserFaceHash(session["username"], face_hash_array).build_transaction({
-            "from": owner_address,
-            "nonce": w3.eth.get_transaction_count(owner_address),
-            "gas": estimated_gas + 200000, 
-            "maxFeePerGas": max_fee_per_gas,  # Total fee
-            "maxPriorityFeePerGas": max_priority_fee,  # Tip for miners
-        })
-
-        # Sign transaction with private key
-        signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
-
-        print("Sending face hash update transaction...")
-        # Send transaction to blockchain
-        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-
-        # Wait for confirmation of transaction
-        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-
-        # Print transaction status
-        if receipt.status == 1:
-            print("Updated user face hashes successfully.")
-            return jsonify ({"success": True, "reason": "Facial Recognition updated successfully!"})
+                return jsonify ({"success": False, "reason": "There was an issue writing to the blockchain..."})
         else:
-            return jsonify ({"success": False, "reason": "There was an issue writing to the blockchain..."})
-    else:
-        return jsonify ({"success": False, "reason": "User does not have permission to peform this action!"})
+            return jsonify ({"success": False, "reason": "User does not have permission to peform this action!"})
+    except Exception as e:
+        return jsonify ({"success": False, "reason": "Internal server error: " + str(e.args[0]) + "!"})
     
 def convert_attr_dict(obj):
     if isinstance(obj, list):
@@ -295,11 +198,9 @@ def get_user_events():
         print("No username sent. Assuming session user logs will be sent.")
         username_logs_requested = None
 
-    permissions = contract.functions.getUserPermissions(session["username"]).call()
-
-    has_read_all = any("FaceGuard Read: All" in perm for perm in permissions)
-    has_read_users = any("FaceGuard Read: Users" in perm for perm in permissions)
-    has_read_self = any("FaceGuard Read: Self" in perm for perm in permissions)
+    has_read_all = check_if_user_has_permission(session["username"], ["FaceGuard Read: All"])
+    has_read_users = check_if_user_has_permission(session["username"], ["FaceGuard Read: Users"])
+    has_read_self = check_if_user_has_permission(session["username"], ["FaceGuard Read: Self"])
 
     return_allowed = False
 
@@ -408,11 +309,9 @@ def get_group_events():
     except:
         print("No group name sent...")
         return jsonify ({"success": False, "reason": "No group name was sent with this request!"})
-
-    permissions = contract.functions.getUserPermissions(session["username"]).call()
-
-    has_read_all = any("FaceGuard Read: All" in perm for perm in permissions)
-    has_read_groups = any("FaceGuard Read: Groups" in perm for perm in permissions)
+    
+    has_read_all = check_if_user_has_permission(session["username"], "FaceGuard Read: All")
+    has_read_groups = check_if_user_has_permission(session["username"], "FaceGuard Read: Groups")
 
     return_allowed = False
 
@@ -426,16 +325,13 @@ def get_group_events():
 
     #list events to check for on the blockchain
     events = [
-        contract.events.UserRegistered,
-        contract.events.UserLoggedIn,
-        contract.events.PasswordUpdated,
-        contract.events.PasswordChangeRequired,
-        contract.events.FaceHashUpdated,
-        contract.events.UserEmailUpdated,
-        contract.events.UserFullNameUpdated,
-        contract.events.UserToggled,
+        contract.events.GroupCreated,
+        contract.events.GroupPermissionsUpdated,
+        contract.events.GroupNameUpdated,
+        contract.events.GroupRemoved,
         contract.events.UserAddedToGroup,
         contract.events.UserRemovedFromGroup
+        #contract.events.GroupAccessURLChanged
     ]
 
     # Convert the username to a topic (if indexed)
@@ -453,44 +349,22 @@ def get_group_events():
             formatted_timestamp = datetime.datetime.fromtimestamp(block_timestamp)
 
             event_name = log["event"]
-            event_data = f"User [{groupname_logs_requested}] "
+            event_data = f"Group [{groupname_logs_requested}] "
             match event_name:
-                case "UserRegistered":
-                    event_data += "successfully registered to smart contract."
-                case "UserLoggedIn":
-                    event_data += "authenticated successfully."
-                case "PasswordUpdated":
-                    event_data += "updated password successfully."
-                case "PasswordChangeRequired":
-                    event_data += "updated. An admin has required this account to update their password on next login."
-                case "FaceHashUpdated":
-                    log_old_faceHashes = log["args"]["oldFaceHashes"]
-                    log_new_faceHashes = log["args"]["newFaceHashes"]
-                    event_data += f"uploaded new face hashes successfully ([{log_old_faceHashes}] => [{log_new_faceHashes}])."
-                case "UserEmailUpdated":
-                    log_old_email = log["args"]["oldEmail"]
-                    if log_old_email == "":
-                        log_old_email = "' '"
-                    log_new_email = log["args"]["newEmail"]
-                    event_data += f"updated email address successfully ([{log_old_email} => {log_new_email}])."
-                case "UserFullNameUpdated":
-                    log_old_full_name = log["args"]["oldFullName"]
-                    if log_old_full_name == "":
-                        log_old_full_name = "' '"
-                    log_new_full_name = log["args"]["newFullName"]
-                    event_data += f"updated full name successfully ([{log_old_full_name} => {log_new_full_name}])."
-                case "UserToggled":
-                    log_enabled = log["args"]["enabled"]
-                    if log_enabled:
-                        event_data += "account has been enabled."
-                    else:
-                        event_data += "account has been disabled."
-                case "UserAddedToGroup":
-                    log_group_name = log["args"]["groupName"]
-                    event_data += f"added to permissions group successfully ([{log_group_name}])."
+                case "GroupCreated":
+                    event_data += "was successfully created."
+                case "GroupPermissionsUpdated":
+                    event_data += "has obtained new permission set successfully."
+                case "GroupNameUpdated":
+                    event_data += "has obtained new name successfully."
+                case "GroupRemoved":
+                    event_data += "has been deleted successfully."
+                case "GroupAccessURLChanged":
+                    event_data += f"changed access URL successfully."
+                case "UserAddedFromGroup":
+                    event_data += f"added user successfully."
                 case "UserRemovedFromGroup":
-                    log_group_name = log["args"]["groupName"]
-                    event_data += f"removed from permissions group successfully ([{log_group_name}])."
+                    event_data += f"removed user successfully."
                 case _:
                     event_data += "[Server Error: Event Not Implemented.]"
             
@@ -504,44 +378,20 @@ def get_group_events():
 @account_bp.route('/delete-self', methods=['GET'])
 @login_required
 def delete_self():
-    permissions = contract.functions.getUserPermissions(session["username"]).call()
+    try:
+        has_delete_perm = check_if_user_has_permission(session["username"], ["FaceGuard Delete: All", "FaceGuard Delete: Users", "FaceGuard Delete: Self"])
 
-    has_delete_all = any("FaceGuard Delete: All" in perm for perm in permissions)
-    has_delete_users = any("FaceGuard Delete: Users" in perm for perm in permissions)
-    has_delete_self = any("FaceGuard Delete: Self" in perm for perm in permissions)
+        if has_delete_perm:
+            print("User will be deleted...")
+            transaction = write_to_blockchain(contract.functions.removeUser, [session["username"]])
 
-    if has_delete_all or has_delete_users or has_delete_self:
-        print("User will be deleted. Estimating gas...")
-        try:
-            estimated_gas = contract.functions.removeUser(session["username"]).estimate_gas({"from": owner_address})
-        except Exception as e:
-            return jsonify ({"success": False, "reason": "Error encountered! Blockchain Response[" + str(e.args[0]) + "]."})
+            # Wait for confirmation of transaction
+            receipt = w3.eth.wait_for_transaction_receipt(transaction)
 
-        # Get the suggested gas price
-        gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
-        max_priority_fee = w3.to_wei("4", "gwei")  # Priority fee (adjust based on congestion)
-        max_fee_per_gas = gas_price + max_priority_fee
-
-        tx = contract.functions.removeUser(session["username"]).build_transaction({
-            "from": owner_address,
-            "nonce": w3.eth.get_transaction_count(owner_address),
-            "gas": estimated_gas + 200000, 
-            "maxFeePerGas": max_fee_per_gas,  # Total fee
-            "maxPriorityFeePerGas": max_priority_fee,  # Tip for miners
-        })
-
-        # Sign transaction with private key
-        signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
-
-        print("Sending user self delete transaction...")
-        # Send transaction to blockchain
-        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-
-        # Wait for confirmation of transaction
-        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-
-        # Print transaction status
-        if receipt.status == 1:
-            return jsonify ({"success": True, "reason": "User deleted successfully."})
-        else:
-            return jsonify ({"success": False, "reason": "An error occurred while writing to the blockchain..."})
+            # Print transaction status
+            if receipt.status == 1:
+                return jsonify ({"success": True, "reason": "User deleted successfully."})
+            else:
+                return jsonify ({"success": False, "reason": "An error occurred while writing to the blockchain..."})
+    except Exception as e:
+        return jsonify ({"success": False, "reason": "Internal server error: " + str(e.args[0]) + "!"})

@@ -1,3 +1,5 @@
+Set-Location "$($PSScriptRoot)"
+
 Write-Host "Checking to see if CMake is installed..."
 #check CMake requirement
 $cmake = Get-Package | Where-Object {$_.Name -eq "CMake"}
@@ -26,7 +28,7 @@ else
 Write-Host "Checking to see if Python 3.11 is installed..."
 #check CMake requirement
 $python = Get-Package | Where-Object {$_.Name -like "Python 3.11*"}
-if ((Measure-Object -InputObject $cmake).Count -lt 1)
+if ((Measure-Object -InputObject $python).Count -lt 1)
 {
     #install MSI
     Write-Host "Please wait while Python 3.11 is installed..."
@@ -103,12 +105,16 @@ catch
     exit
 }
 
-Write-Host "`nInstalling required NPM packages...`n"
+Write-Host "`nInstalling required NPM packages for Blockchain scripts...`n"
 
-#install required Node JS packages
-npm install --save-dev hardhat
-npm install dotenv --save
-npm install --save-dev @nomiclabs/hardhat-ethers "ethers@^5.0.0"
+New-Item -ItemType Directory -Path "$($PSScriptRoot)\Blockchain\node_modules" -Force
+
+#install required Node JS packages for the smart contract creation script
+Set-Location "$($PSScriptRoot)\Blockchain"
+npm install --prefix "$($PSScriptRoot)\Blockchain" --save-dev hardhat
+npm install --prefix "$($PSScriptRoot)\Blockchain" dotenv --save
+npm install --prefix "$($PSScriptRoot)\Blockchain" --save-dev @nomiclabs/hardhat-ethers "ethers@^5.0.0"
+Set-Location "$($PSScriptRoot)"
 
 Write-Host "`nNPM packages installed.`n"
 
@@ -122,7 +128,7 @@ if($buildToolsProcess.ExitCode -eq 0)
 #update PIP if necessary
 & python.exe -m pip install --upgrade pip
 
-Start-Sleep -Seconds 10
+Start-Sleep -Seconds 3
 
 #install dlib wheel for Python 3.11, needed for face_recognition module
 pip install "$($PSScriptRoot)\Backend\Requirements\dlib-19.24.1-cp311-cp311-win_amd64.whl"

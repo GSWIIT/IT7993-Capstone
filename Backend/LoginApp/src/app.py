@@ -9,36 +9,32 @@ from flask_cors import CORS
 from datetime import timedelta
 from dotenv import load_dotenv
 from waitress import serve
-#from OpenSSL import SSL
+import secrets
 
 load_dotenv()
-BACKEND_IP = os.getenv("BACKEND_IP")
 BACKEND_DOMAIN_NAME = os.getenv("BACKEND_DOMAIN_NAME")
 
+# Generate a random secret key with 32 bytes (256 bits), used to secure login sessions
+secret_key = secrets.token_urlsafe(32)
+
 app = Flask(__name__)
-CORS(app, supports_credentials=True, origins=[f"http://{BACKEND_IP}:5173", "http://{BACKEND_DOMAIN_NAME}", "https://{BACKEND_DOMAIN_NAME}"])
-
-# SSL Context Setup
-#context = SSL.Context(SSL.TLSv1_2_METHOD)
-#context.use_privatekey_file("C:\\Users\\Administrator\\Downloads\\IT7993-Capstone-main\\IT7993-Capstone-main\\Backend\\LoginApp\\src\\cert\\key.pem")
-#context.use_certificate_file("C:\\Users\\Administrator\\Downloads\\IT7993-Capstone-main\\IT7993-Capstone-main\\Backend\\LoginApp\\src\\cert\\cert.pem")
-
+CORS(app, supports_credentials=True, origins=[f"http://{BACKEND_DOMAIN_NAME}", f"https://{BACKEND_DOMAIN_NAME}"])
 
 #Initialize login session settings in the Flask app.
-app.config['SECRET_KEY'] = "testing"  # Change this in production
-app.secret_key = "testing"
+app.config['SECRET_KEY'] = secret_key  # Change this in production
+app.secret_key = secret_key
 app.config['SESSION_TYPE'] = 'filesystem' # Store session on the server (alternatives: 'redis', 'memcached', 'mongodb', etc.)
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True  # Helps prevent tampering
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False  # Set to True if using HTTPS
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Auto-expire sessions after 30 mins
+app.config['SESSION_PERMANENT'] = True #allow sessions to refresh themselves on request
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Auto-expire sessions after 30 mins of session inactivity
 app.config["SESSION_COOKIE_SAMESITE"] = "None" #needed for cross site cookies to work
 app.config["SESSION_COOKIE_SECURE"] = True  # Required if using SameSite=None
 
-# The maximum number of sessions the server stores in the file system
-# before it starts deleting some, default 500
-app.config['SESSION_FILE_THRESHOLD'] = 100
+# The maximum number of sessions the server stores in the file system before it starts deleting some, default 500
+app.config['SESSION_FILE_THRESHOLD'] = 500
 
 #start Flask login session handler
 Session(app)
@@ -55,5 +51,3 @@ app.register_blueprint(account_bp, url_prefix='/account')
 if __name__ == '__main__':
     serve(app, host="0.0.0.0", port=5000) #run app officially with Waitress
     #app.run(host='0.0.0.0', debug=True, port=5000)
-
-    #ssl_context=("C:\\Users\\Administrator\\Downloads\\IT7993-Capstone-main\\IT7993-Capstone-main\\Backend\\LoginApp\\src\\cert\\cert.pem", "C:\\Users\\Administrator\\Downloads\\IT7993-Capstone-main\\IT7993-Capstone-main\\Backend\\LoginApp\\src\\cert\\key.pem"),

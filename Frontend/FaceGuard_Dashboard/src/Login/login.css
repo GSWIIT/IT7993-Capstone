@@ -163,7 +163,7 @@
     color: red;
     background-color: pink;
     padding: 10px;
-    margin: 10px;
+    margin: auto;
     border: 2px solid red;
     border-radius: 5px;
     inline-size: 300px;
@@ -291,4 +291,12 @@
 .show-password input[type="checkbox"]{
     width: 15px;
     height: 15px;
+}
+
+video {
+    margin: auto;
+}
+
+canvas {
+    margin: auto;
 }

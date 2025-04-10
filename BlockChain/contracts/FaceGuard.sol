@@ -19,6 +19,7 @@ contract FaceGuard {
         string name;
         string[] members;
         string[] permissions;
+        string accessURL;
     }
 
     mapping(string => User) private users;
@@ -40,11 +41,12 @@ contract FaceGuard {
     event UserFullNameUpdated(string indexed username, string oldFullName, string newFullName);
     event UserToggled(string indexed username, bool enabled);
     event GroupCreated(string indexed groupName, string[] permissions);
-    event UserAddedToGroup(string indexed username, string groupName);
-    event UserRemovedFromGroup(string indexed username, string groupName);
+    event UserAddedToGroup(string indexed username, string indexed groupNameIndexed, string groupName);
+    event UserRemovedFromGroup(string indexed username, string indexed groupNameIndexed, string groupName);
     event GroupPermissionsUpdated(string indexed groupName, string[] permissions);
     event GroupNameUpdated(string indexed originalGroupName, string newGroupName);
-    event GroupRemoved(string indexed groupName);
+    event GroupRemoved(string indexed groupNameIndexed, string groupName);
+    event GroupAccessURLChanged(string indexed groupName, string oldAccessURL, string newAccessURL);
     event UserRemoved(string username);
 
     modifier onlyOwner() {
@@ -183,7 +185,7 @@ contract FaceGuard {
 
     // Group management functions
     function createGroup(string memory groupName, string[] memory permissions) public onlyOwner {
-        groups[groupName] = Group(groupName, new string[](0), permissions);
+        groups[groupName] = Group(groupName, new string[](0), permissions, "");
         allGroupNames.push(groupName);
         emit GroupCreated(groupName, permissions);
     }
@@ -193,7 +195,7 @@ contract FaceGuard {
         require(bytes(users[username].username).length > 0, "User does not exist");
 
         groups[groupName].members.push(username);
-        emit UserAddedToGroup(username, groupName);
+        emit UserAddedToGroup(username, groupName, groupName);
     }
 
     function removeUserFromGroup(string memory groupName, string memory username) public onlyOwner {
@@ -221,7 +223,7 @@ contract FaceGuard {
             require(found, "User is not in this group");
         }
 
-        emit UserRemovedFromGroup(username, groupName);
+        emit UserRemovedFromGroup(username, groupName, groupName);
     }
 
     function getUserPermissions(string memory username) public view returns (string[] memory) {
@@ -319,6 +321,23 @@ contract FaceGuard {
         }
     }
 
+    function setGroupURL(string memory groupName, string memory url) public onlyOwner {
+        require(bytes(groups[groupName].name).length > 0, "Group does not exist");
+
+        // Define the core groups
+        string[4] memory coreGroups = ["Administrators", "Users", "Group Managers", "User Managers"];
+        
+        // Check if the groupName is in the core groups
+        for (uint i = 0; i < coreGroups.length; i++) {
+            require(keccak256(abi.encodePacked(groupName)) != keccak256(abi.encodePacked(coreGroups[i])),
+                    "Modifying core group permissions is not allowed");
+        }
+
+        string memory oldUrl = groups[groupName].accessURL;
+        groups[groupName].accessURL = url;
+        emit GroupAccessURLChanged(groupName, oldUrl, url);
+    }
+
     function setGroupPermissions(string memory groupName, string[] memory groupPermissions) public onlyOwner returns (string memory) {
         require(bytes(groups[groupName].name).length > 0, "Group does not exist");
 
@@ -366,6 +385,6 @@ contract FaceGuard {
         // Remove from mapping
         delete groups[groupName];
 
-        emit GroupRemoved(groupName);
+        emit GroupRemoved(groupName, groupName);
     }
 }

@@ -49,6 +49,8 @@ const Permissions: React.FC = () => {
 
   const [showUserLogsOverlay, setShowUserLogsOverlay] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const selectedEntity = selectedUser ?? selectedGroup;
   const [logs, setLogs] = useState<Logs[]>([]);
 
   const [showModal, setShowModal] = useState(false);
@@ -59,7 +61,6 @@ const Permissions: React.FC = () => {
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
 
   const [showEditUsersOverlay, setShowEditUsersOverlay] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [newUser, setNewUser] = useState("");
 
   // Server message overlay states
@@ -150,10 +151,11 @@ const Permissions: React.FC = () => {
     setShowEditUsersOverlay(!showEditUsersOverlay);
   };
 
-  const toggleUserLogsOverlay = async (user?: User) => {
-    if(!showUserLogsOverlay)
+  const showLogsOverlay = async (user?: User, group?: Group) => {
+    if(user != null)
     {
-      setSelectedUser(user || null);
+      setSelectedUser(user);
+      setSelectedGroup(null);
       showLoadingOverlay();
       await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/get-user-events?username=${encodeURIComponent(user.username)}`, {
         method: 'GET',
@@ -167,15 +169,40 @@ const Permissions: React.FC = () => {
         {
           setLogs(result.logs);
           hideLoadingOverlay();
-          setShowUserLogsOverlay(!showUserLogsOverlay);
+          setShowUserLogsOverlay(true);
+        }
+      })
+    }
+    else if (group != null)
+    {
+      setSelectedGroup(group);
+      setSelectedUser(null);
+      showLoadingOverlay();
+      await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/get-group-events?groupName=${encodeURIComponent(group.name)}`, {
+        method: 'GET',
+        credentials: "include",
+      })
+      .then((response) => response.json())
+      .then((result) => {
+        setIsLoading(false)
+        setServerResponseMessage(result.reason)
+        if(result.success)
+        {
+          setLogs(result.logs);
+          hideLoadingOverlay();
+          setShowUserLogsOverlay(true);
         }
       })
     }
     else
     {
-      setShowUserLogsOverlay(!showUserLogsOverlay);
+      return null
     }
   };
+
+  const closeLogsOverlay = () => {
+    setShowUserLogsOverlay(false);
+  }
 
   const handleAddUser = async () => {
     if (newUser.trim() && selectedGroup) {
@@ -439,11 +466,13 @@ const Permissions: React.FC = () => {
             <h1>Groups and Permissions</h1>
         </div>
         <div className="permissions-container">
-        {showUserLogsOverlay && selectedUser && (
+        {showUserLogsOverlay && selectedEntity && (
           <div className="modal-overlay">
             <div className="user-logs-content">
-                <h2>User Logs: {selectedUser.username}</h2>
-                <div className="log-table">
+              <h2>
+                {selectedUser ? `User Logs: ${selectedUser.username}` : `Group Logs: ${selectedGroup.groupName}`}
+              </h2>
+              <div className="log-table">
                 <table className="permissions-table">
                   <thead>
                     <tr>
@@ -466,7 +495,7 @@ const Permissions: React.FC = () => {
                 </table>
               </div>
               <div className="modal-buttons">
-                <button className="permissions_edit_group_users_submit_button" onClick={() => toggleUserLogsOverlay(selectedUser)}>Done</button>
+                <button className="permissions_edit_group_users_submit_button" onClick={() => closeLogsOverlay()}>Done</button>
               </div>
             </div>
           </div>
@@ -624,7 +653,7 @@ const Permissions: React.FC = () => {
                         <td>{user.lastEditDate}</td>
                         <td>{`${user.enabled}`}</td>
                         <td>
-                          <button className="edit-btn-icon" onClick={() => toggleUserLogsOverlay(user)}><img className="view-btn-icon" src={viewIcon}/></button>
+                          <button className="edit-btn-icon" onClick={() => showLogsOverlay(user)}><img className="view-btn-icon" src={viewIcon}/></button>
                         </td>
                       </tr>
                     ))}
@@ -648,6 +677,7 @@ const Permissions: React.FC = () => {
                       <tr>
                         <th className="sticky">Name</th>
                         <th className="sticky">Permissions</th>
+                        <th className="sticky">View Logs</th>
                         <th className="sticky">Edit Users</th>
                         <th className="sticky">Edit Group</th>
                         <th className="sticky">Delete</th>
@@ -663,6 +693,9 @@ const Permissions: React.FC = () => {
                               <li className="green-li-group" key={index}>{permission} </li>
                               )}
                             </ul>
+                          </td>
+                          <td>
+                          <button className="edit-btn-icon" onClick={() => showLogsOverlay(undefined, group)}><img className="btn-icon" src={viewIcon}/></button>
                           </td>
                           <td>
                           <button className="edit-btn-icon" onClick={() => toggleEditUsersOverlay(group)}><img className="btn-icon" src={editIcon}/></button>

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import './login.css';
 import backgroundvideo from "../assets/login.mp4";
@@ -16,6 +16,7 @@ const LoginPage: React.FC = () => {
   const canvas3Ref = useRef<HTMLCanvasElement>(null!);
   const video2FARef = useRef<HTMLVideoElement>(null!);
   const canvas2FARef = useRef<HTMLCanvasElement>(null!);
+  const loginRetryAttemptsRef= useRef(0);
 
   // State for overlays and messages
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
@@ -273,8 +274,9 @@ const LoginPage: React.FC = () => {
       }
     }, 100); // Check every 100ms
 
-    const frameCount = 5;
-    const interval = 150;
+    const retryLimit = 5;
+    const frameCount = 3;
+    const interval = 300;
     let count = 0;
     const frames: string[] = [];
     const captureInterval = setInterval(() => {
@@ -289,6 +291,7 @@ const LoginPage: React.FC = () => {
       count++;
       if (count >= frameCount) {
         clearInterval(captureInterval);
+        setTwoFAErrorMessage("Test");
         fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/login-2FA-Face`, {
           method: 'POST',
           credentials: "include",
@@ -311,7 +314,17 @@ const LoginPage: React.FC = () => {
               pageNavigator('/home');
             } else {
               setTwoFAErrorMessage(result.reason);
-              setTimeout(capture2FAFrames, 50);
+              if(loginRetryAttemptsRef.current >= retryLimit)
+              {
+                close2FAFaceOverlay();
+                displayLoadingPrompt("Retry limit exceeded. Please try again.", false);
+                loginRetryAttemptsRef.current = 0;
+              }
+              else
+              {
+                loginRetryAttemptsRef.current += 1;
+                setTimeout(capture2FAFrames, 200);
+              }
             }
           })
           .catch((error) => console.error('Error:', error));
@@ -379,6 +392,7 @@ const LoginPage: React.FC = () => {
       }
     
   }
+
   
 
   // ----------------- JSX -----------------

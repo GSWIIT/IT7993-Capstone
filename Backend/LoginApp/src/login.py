@@ -1,7 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
-import os
-import json
-from web3 import Web3
+from flask import Blueprint, render_template, request, session, jsonify
 import hashlib
 import time
 import cv2
@@ -14,7 +11,7 @@ import io
 import face_recognition
 from functools import wraps
 from datetime import datetime
-from blockchain_connection import get_contract, get_w3_object, get_owner_address, get_private_key, write_to_blockchain
+from blockchain_connection import get_contract, get_w3_object, write_to_blockchain
 
 login_bp = Blueprint('login', __name__, template_folder='templates')
 
@@ -23,8 +20,6 @@ face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_fronta
 
 contract = get_contract()
 w3 = get_w3_object()
-owner_address = get_owner_address()
-PRIVATE_KEY = get_private_key()
 
 #a list to hold users temporarily while they are trying to 2FA, so we don't have to query the blockchain every time.
 temporary_user_storage = []
@@ -67,62 +62,32 @@ def hamming_distance(hash1, hash2):
 
 @login_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == "GET":
-        return render_template('login.html')
-    else:
-        data = request.get_json()
-        username = data.get("username")
-        password = data.get("password")
-        
-        password = hash_password(password)
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+    
+    password = hash_password(password)
 
-        user_obj = contract.functions.getUser(username).call()
-        print(user_obj)
-        if user_obj[0] == "":
-            print("The username and/or password is incorrect.")
-            return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
+    user_obj = contract.functions.getUser(username).call()
+    print(user_obj)
+    if user_obj[0] == "":
+        print("The username and/or password is incorrect.")
+        return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
+    else:
+        #now we compare the password hashes to see if they match
+        if password == user_obj[1]:
+            print("Username and password match! First portion of login was successful!")
+            return jsonify({"success": True, "reason": "Username and password match! Login was successful!"})
         else:
-            #now we compare the password hashes to see if they match
-            if password == user_obj[1]:
-                print("Username and password match! First portion of login was successful!")
-                return jsonify({"success": True, "reason": "Username and password match! Login was successful!"})
-            else:
-                print("The password entered is incorrect.")
-                return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
+            print("The password entered is incorrect.")
+            return jsonify({"success": False, "reason": "The username and/or password is incorrect."})
 
 def send_login_success_log(username):
-    print("Sending login success log...")
-    result = write_to_blockchain(contract.functions.emitLoginSuccessLog, [username])
-    if(result.success == True):
-        print(f"User [{username}] login log transaction sent to blockchain.")
-    else:
-        print(f"ERROR: Could not send user [{username} login log transaction!]")
-
-    """
-    print("Estimating gas...")
-    #estimate the cost of the ethereum transaction by predicting gas
-    estimated_gas = contract.functions.emitLoginSuccessLog(username).estimate_gas({"from": owner_address})
-
-    # Get the suggested gas price
-    gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
-    max_priority_fee = w3.to_wei("20", "gwei")  # Priority fee (adjust based on congestion)
-    max_fee_per_gas = gas_price + max_priority_fee
-
-    #register user (use estimated gas & add an extra 50000 buffer to make sure transaction goes through)
-    tx = contract.functions.emitLoginSuccessLog(username).build_transaction({
-        "from": owner_address,
-        "nonce": w3.eth.get_transaction_count(owner_address),
-        "gas": estimated_gas + 400000, 
-        "maxFeePerGas": max_fee_per_gas,  # Total fee
-        "maxPriorityFeePerGas": max_priority_fee,  # Tip for miners
-    })
-
-    # Sign transaction with private key
-    signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
-
-    # Send transaction to blockchain
-    tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-    #w3.eth.wait_for_transaction_receipt(tx_hash)"""
+    try:
+        print("Sending login success log...")
+        write_to_blockchain(contract.functions.emitLoginSuccessLog, [username])
+    except Exception as e:
+        return jsonify ({"success": False, "reason": "Internal server error: "  + str(e.args[0]) + "!"})
 
 @login_bp.route('/login-2FA-Face', methods=['POST'])
 def check_face_for_2FA():
@@ -239,53 +204,17 @@ def signup():
     current_date = datetime.now().strftime("%Y-%m-%d")
     current_date = str(current_date)
 
-    print("Estimating gas...")
-    #estimate the cost of the ethereum transaction by predicting gas
-    estimated_gas = contract.functions.registerUser(username, password, face_hash_array, current_date).estimate_gas({"from": owner_address})
-
-    # Get the suggested gas price
-    gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
-    max_priority_fee = w3.to_wei("10", "gwei")  # Priority fee (adjust based on congestion)
-    max_fee_per_gas = gas_price + max_priority_fee
-
-    #register user (use estimated gas & add an extra 50000 buffer to make sure transaction goes through)
-    tx = contract.functions.registerUser(
-        username, password, face_hash_array, current_date
-    ).build_transaction({
-        "from": owner_address,
-        "nonce": w3.eth.get_transaction_count(owner_address),
-        "gas": estimated_gas + 200000, 
-        "maxFeePerGas": max_fee_per_gas,  # Total fee
-        "maxPriorityFeePerGas": max_priority_fee,  # Tip for miners
-    })
-
-    # Sign transaction with private key
-    signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
-
-    # Send transaction to blockchain
-    tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+    transaction = write_to_blockchain(contract.functions.registerUser, [username, password, face_hash_array, current_date])
 
     # Wait for confirmation of transaction
-    receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+    receipt = w3.eth.wait_for_transaction_receipt(transaction)
 
     # Print transaction status
     if receipt.status == 1:
         print(f"Transaction successful! Block: {receipt.blockNumber}")
         print("Waiting a few more seconds...")
-        time.sleep(3)
-
-        print("Checking to see if user exists now...")
-        user_obj = contract.functions.getUser(username).call()
-        print(user_obj)
-        if user_obj[0] == "":
-            userExists = False
-            #this should not happen if transaction went through
-            print("The transaction went through but the user is still not found. It will show up eventually I guess...")
-            return jsonify({"success": True, "reason": "User created successfully."})
-        else:
-            userExists = True
-            print("The user is now on the blockchain! The script was successful.")
-            return jsonify({"success": True, "reason": "User created successfully."})
+        time.sleep(5)
+        return jsonify({"success": True, "reason": "User created successfully."})
     else:
         print("Transaction failed! User was not created.")
         return jsonify({"success": False, "reason": "Transaction failed."})
