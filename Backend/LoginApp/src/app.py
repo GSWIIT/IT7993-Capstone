@@ -19,7 +19,7 @@ RUN_FLASK_LOCALLY = os.getenv("RUN_FLASK_LOCALLY")
 secret_key = secrets.token_urlsafe(32)
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True, origins=[f"http://{BACKEND_DOMAIN_NAME}", f"https://{BACKEND_DOMAIN_NAME}"])
+CORS(app, supports_credentials=True, origins=[f"http://{BACKEND_DOMAIN_NAME}", f"https://{BACKEND_DOMAIN_NAME}", "http://localhost:5173", "http://localhost"])
 
 #Initialize login session settings in the Flask app.
 app.config['SECRET_KEY'] = secret_key  # Change this in production
