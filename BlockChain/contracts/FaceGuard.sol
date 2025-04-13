@@ -202,7 +202,6 @@ contract FaceGuard {
         require(bytes(groups[groupName].name).length > 0, "Group does not exist");
         require(bytes(users[username].username).length > 0, "User does not exist");
 
-        //testing
         if(isRemovingUser == false) {
             require(keccak256(abi.encodePacked(groupName)) != keccak256(abi.encodePacked("Users")), "Removing users from the Users group is not allowed!");
         }
@@ -278,10 +277,10 @@ contract FaceGuard {
         return allGroupNames;
     }
 
-    function getGroup(string memory groupName) public onlyOwner view returns (string memory, string[] memory, string[] memory) {
+    function getGroup(string memory groupName) public onlyOwner view returns (string memory, string[] memory, string[] memory, string memory) {
         require(bytes(groups[groupName].name).length > 0, "Group does not exist");
         Group memory group = groups[groupName];
-        return (group.name, group.permissions, group.members);
+        return (group.name, group.permissions, group.members, group.accessURL);
     }
 
     function updateGroup(string memory originalGroupName, string memory newGroupName, string[] memory newPermissions) public onlyOwner {

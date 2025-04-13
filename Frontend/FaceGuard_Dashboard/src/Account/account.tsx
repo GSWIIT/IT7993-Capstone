@@ -52,7 +52,7 @@ const account: React.FC = () => {
   const [logs, setLogs] = useState<Logs[]>([]);
 
   const checkSession = async () => {
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/check-session`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/auth/check-session`, {
       method: 'GET',
       credentials: "include"
     })
@@ -175,7 +175,7 @@ const account: React.FC = () => {
     const photos = [base64Image1, base64Image2, base64Image3];
     setPhotoArray(photos);
 
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/checkface`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/auth/checkface`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ faceArray: photos }),
@@ -214,7 +214,7 @@ const account: React.FC = () => {
 
   const getSelf = async () => {
     showLoadingOverlay()
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/get-self`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/account/get-self`, {
       method: 'GET',
       credentials: "include"
     })
@@ -232,7 +232,7 @@ const account: React.FC = () => {
   
   const onLogOutClick = () => {
     console.log("Logging out...");
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/logoff-session`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/auth/logoff-session`, {
       method: 'GET',
       credentials: "include"
     })
@@ -245,7 +245,7 @@ const account: React.FC = () => {
   const onGetUserLogsClick = () => {
     showLoadingOverlay()
     console.log("Getting user logs from blockchain...");
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/get-user-events`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/account/get-user-events`, {
       method: 'GET',
       credentials: "include"
     })
@@ -297,7 +297,7 @@ const account: React.FC = () => {
 
   const onSaveProfileClick = () => {
     showLoadingOverlay()
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/update-profile`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/account/update-profile`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: "include",
@@ -338,7 +338,7 @@ const account: React.FC = () => {
       return
     }
 
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/update-password`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/account/update-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: "include",
@@ -358,7 +358,7 @@ const account: React.FC = () => {
 
   const onConfirmNewFacePhotos = () => {
     showLoadingOverlay();
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/update-face-hashes`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/account/update-face-hashes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: "include",
@@ -376,7 +376,7 @@ const account: React.FC = () => {
 
   const onDeleteSelfClick = () => {
     showLoadingOverlay();
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/delete-self`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/account/delete-self`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       credentials: "include"      

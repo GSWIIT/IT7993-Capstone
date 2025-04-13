@@ -56,6 +56,7 @@ const Permissions: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [groupName, setGroupName] = useState("");
+  const [groupAccessURL, setGroupAccessURL] = useState("");
   const [permissionsArray, setPermissionsArray] = useState<string[]>([]);
   const [newPermission, setNewPermission] = useState("");
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
@@ -88,10 +89,12 @@ const Permissions: React.FC = () => {
     setShowModal(false)
     showLoadingOverlay()
 
+    let editSuccess = false
+
     if(editingGroup != null)
     {
       console.log("Update group:", editingGroup.name, " to ", groupName, "with permissions:", permissionsArray);
-      await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/permissions/update-group`, {
+      await fetch(`${BACKEND_API_DOMAIN_NAME}/permissions/update-group`, {
         method: 'POST',
         credentials: "include",
         headers: { 'Content-Type': 'application/json' },
@@ -107,20 +110,42 @@ const Permissions: React.FC = () => {
         setServerResponseMessage(result.reason)
         if(result.success)
         {
-          getGroups()
+          editSuccess = true
         }
       })
     }
     else
     {
       console.log("Creating group:", groupName, "with permissions:", permissionsArray);
-      await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/permissions/create-group`, {
+      await fetch(`${BACKEND_API_DOMAIN_NAME}/permissions/create-group`, {
         method: 'POST',
         credentials: "include",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           groupName: groupName,
           groupPermissions: permissionsArray
+        }),
+      })
+      .then((response) => response.json())
+      .then((result) => {
+        setIsLoading(false)
+        setServerResponseMessage(result.reason)
+        if(result.success)
+        {
+          editSuccess = true
+        }
+      })
+    }
+
+    if(editSuccess)
+    {
+      await fetch(`${BACKEND_API_DOMAIN_NAME}/permissions/update-group-access-url`, {
+        method: 'POST',
+        credentials: "include",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          groupName: groupName,
+          accessURL: groupAccessURL
         }),
       })
       .then((response) => response.json())
@@ -157,7 +182,7 @@ const Permissions: React.FC = () => {
       setSelectedUser(user);
       setSelectedGroup(null);
       showLoadingOverlay();
-      await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/get-user-events?username=${encodeURIComponent(user.username)}`, {
+      await fetch(`${BACKEND_API_DOMAIN_NAME}/account/get-user-events?username=${encodeURIComponent(user.username)}`, {
         method: 'GET',
         credentials: "include",
       })
@@ -178,7 +203,7 @@ const Permissions: React.FC = () => {
       setSelectedGroup(group);
       setSelectedUser(null);
       showLoadingOverlay();
-      await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/account/get-group-events?groupName=${encodeURIComponent(group.name)}`, {
+      await fetch(`${BACKEND_API_DOMAIN_NAME}/account/get-group-events?groupName=${encodeURIComponent(group.name)}`, {
         method: 'GET',
         credentials: "include",
       })
@@ -207,7 +232,7 @@ const Permissions: React.FC = () => {
   const handleAddUser = async () => {
     if (newUser.trim() && selectedGroup) {
       showLoadingOverlay()
-      await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/permissions/add-group-user`, {
+      await fetch(`${BACKEND_API_DOMAIN_NAME}/permissions/add-group-user`, {
         method: 'POST',
         credentials: "include",
         headers: { 'Content-Type': 'application/json' },
@@ -234,7 +259,7 @@ const Permissions: React.FC = () => {
   const handleDeleteUser = async (usernameToRemove: string) => {
     if (selectedGroup) {
       showLoadingOverlay()
-      await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/permissions/remove-group-user`, {
+      await fetch(`${BACKEND_API_DOMAIN_NAME}/permissions/remove-group-user`, {
         method: 'POST',
         credentials: "include",
         headers: { 'Content-Type': 'application/json' },
@@ -275,7 +300,7 @@ const Permissions: React.FC = () => {
   };
 
   const checkSession = async () => {
-    await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/check-session`, {
+    await fetch(`${BACKEND_API_DOMAIN_NAME}/auth/check-session`, {
       method: 'GET',
       credentials: "include"
     })
@@ -294,7 +319,7 @@ const Permissions: React.FC = () => {
   };
 
   const getUsers = async () => {
-    await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/permissions/get-users`, {
+    await fetch(`${BACKEND_API_DOMAIN_NAME}/permissions/get-users`, {
       method: 'GET',
       credentials: "include"
     })
@@ -314,7 +339,7 @@ const Permissions: React.FC = () => {
   }
 
   const getGroups = async () => {
-    await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/permissions/get-groups`, {
+    await fetch(`${BACKEND_API_DOMAIN_NAME}/permissions/get-groups`, {
       method: 'GET',
       credentials: "include"
     })
@@ -342,7 +367,7 @@ const Permissions: React.FC = () => {
 
   const deleteGroup = async (groupName: string) => {
     showLoadingOverlay()
-    await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/permissions/delete-group`, {
+    await fetch(`${BACKEND_API_DOMAIN_NAME}/permissions/delete-group`, {
       method: 'POST',
       credentials: "include",
       headers: { 'Content-Type': 'application/json' },
@@ -364,7 +389,7 @@ const Permissions: React.FC = () => {
   }
 
   const getPermissions = async () => {
-    await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/permissions/get-user-permissions`, {
+    await fetch(`${BACKEND_API_DOMAIN_NAME}/permissions/get-user-permissions`, {
       method: 'GET',
       credentials: "include"
     })
@@ -396,7 +421,7 @@ const Permissions: React.FC = () => {
 
   const onLogOutClick = () => {
     console.log("Logging out...");
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/logoff-session`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/auth/logoff-session`, {
       method: 'GET',
       credentials: "include"
     })
@@ -470,7 +495,7 @@ const Permissions: React.FC = () => {
           <div className="modal-overlay">
             <div className="user-logs-content">
               <h2>
-                {selectedUser ? `User Logs: ${selectedUser.username}` : `Group Logs: ${selectedGroup.groupName}`}
+                {selectedUser ? `User Logs` : `Group Logs`}
               </h2>
               <div className="log-table">
                 <table className="permissions-table">
@@ -552,8 +577,8 @@ const Permissions: React.FC = () => {
                   <input
                       type="text"
                       placeholder="Access URL"
-                      value="www.google.com"
-                      onChange={(e) => setGroupName(e.target.value)}
+                      value={groupAccessURL}
+                      onChange={(e) => setGroupAccessURL(e.target.value)}
                     />
                 </div>
                 <table className="permissions-table">

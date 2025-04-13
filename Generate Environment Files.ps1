@@ -16,13 +16,14 @@ $choice = $host.UI.PromptForChoice("Would you like to run the Flask API locally?
 
 if($choice -eq 0)
 {
-    $envContent += "RUN_LOCALLY=True"
+    $envContent += "RUN_FLASK_LOCALLY=True"
+    $backendDomainName = "http://localhost:5000"
 }
 else 
 {
-    $envContent += "RUN_LOCALLY=False"
+    $envContent += "RUN_FLASK_LOCALLY=False"
 
-    $backendDomainName = Read-Host "Enter ONLY the domain name of the website (without www or https://) (example: faceguard-it7993.com)"
+    $backendDomainName = Read-Host "Enter ONLY the domain name of the website (with http:// or https://) (example: https://faceguard-it7993.com)"
     $envContent += "BACKEND_DOMAIN_NAME=$($backendDomainName)"
 }
 
@@ -47,19 +48,7 @@ Write-Host "`nGenerating Frontend environment file..."
 
 $envContent = @()
 
-$choice = $host.UI.PromptForChoice("Would you like to run the React Frontend locally?", "If not, you can enter a domain name.", @([System.Management.Automation.Host.ChoiceDescription]::new("&Yes"), [System.Management.Automation.Host.ChoiceDescription]::new("&No")), 0)
-
-if($choice -eq 0)
-{
-    $envContent += "VITE_RUN_LOCALLY=True"
-}
-else 
-{
-    $envContent += "VITE_RUN_LOCALLY=False"
-
-    $backendDomainName = Read-Host "Enter ONLY the domain name of the website (without www or https://) (example: faceguard-it7993.com)"
-    $envContent += "VITE_BACKEND_API_DOMAIN_NAME=$($backendDomainName)"
-}
+$envContent += "VITE_BACKEND_API_DOMAIN_NAME=$($backendDomainName)"
 
 New-Item -Path "$($PSScriptRoot)\Frontend\FaceGuard_Dashboard\" -Name ".env" -ItemType File -Force
 $envContent | Set-Content -Path "$($PSScriptRoot)\Frontend\FaceGuard_Dashboard\.env"

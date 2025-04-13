@@ -13,6 +13,7 @@ import secrets
 
 load_dotenv()
 BACKEND_DOMAIN_NAME = os.getenv("BACKEND_DOMAIN_NAME")
+RUN_FLASK_LOCALLY = os.getenv("RUN_FLASK_LOCALLY")
 
 # Generate a random secret key with 32 bytes (256 bits), used to secure login sessions
 secret_key = secrets.token_urlsafe(32)
@@ -49,5 +50,7 @@ app.register_blueprint(permissions_bp, url_prefix='/permissions')  # Prefix all 
 app.register_blueprint(account_bp, url_prefix='/account')
     
 if __name__ == '__main__':
-    serve(app, host="0.0.0.0", port=5000) #run app officially with Waitress
-    #app.run(host='0.0.0.0', debug=True, port=5000)
+    if(RUN_FLASK_LOCALLY):
+        app.run(debug=True, port=5000) #run locally in dev mode
+    else:
+        serve(app, host="0.0.0.0", port=5000) #run app officially on network with Waitress

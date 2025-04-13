@@ -90,6 +90,40 @@ def get_all_users():
 
     return jsonify({"success": True, "reason": "Users returned successfully based on permissions.", "array": all_users_array})
 
+#protected with login_required decorator function
+@permissions_bp.route('/get-all-quick-url-links', methods=['GET'])
+@login_required
+def get_all_quick_url_links():
+    has_read_self_group_only = check_if_user_has_permission(session["username"], ["FaceGuard Read: Self"])
+
+    all_quick_links_array = []
+
+    print("User [" + str(session["username"]) + "] has permission to read self: ", has_read_self_group_only)
+
+    groupNames = contract.functions.getAllGroups().call()
+
+    if has_read_self_group_only:
+        for group in groupNames:
+            group_obj = contract.functions.getGroup(group).call()
+            include_in_return_array = False
+
+            session_user_found_in_group = session["username"] in group_obj[2]
+
+            if session_user_found_in_group:
+                include_in_return_array = True
+
+            if include_in_return_array:
+                if(group_obj[3] != ""):
+                    all_quick_links_array.append(group_obj[3])
+        
+        print(all_quick_links_array)
+
+        if all_quick_links_array.count == 0:
+            return jsonify({"success": False, "reason": "Request completed successfully, but there were no URLs found.", "array": None})
+        else:
+            return jsonify({"success": True, "reason": "URLs obtained successfully.", "array": all_quick_links_array})
+    else:
+        jsonify({"success": False, "reason": "User does not have permission to view any groups!", "array": None})
 
 #protected with login_required decorator function
 @permissions_bp.route('/get-groups', methods=['GET'])

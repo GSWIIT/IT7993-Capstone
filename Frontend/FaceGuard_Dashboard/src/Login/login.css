@@ -170,6 +170,15 @@
     text-align: center;
 }
 
+.login_prompt_info {
+    padding: 10px;
+    margin: auto;
+    border: 2px solid black;
+    border-radius: 5px;
+    inline-size: 300px;
+    text-align: center;
+}
+
 .login_prompt_success {
     color: green;
     background-color: lightgreen;

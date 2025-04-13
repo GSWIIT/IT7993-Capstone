@@ -29,6 +29,7 @@ const LoginPage: React.FC = () => {
   const [signupMessage, setSignupMessage] = useState('');
   const [showSignupMessage, setShowSignupMessage] = useState(false);
   const [twoFAErrorMessage, setTwoFAErrorMessage] = useState('');
+  const [twoFAIsError, setTwoFAIsError] = useState(false);
   const [faceRecognitionMessage, setFaceRecognitionMessage] = useState('');
   const [faceRecognitionSuccess, setFaceRecognitionSuccess] = useState(false);
   const [showFaceRecognitionMessage, setShowFaceRecognitionMessage] = useState(false);
@@ -137,7 +138,7 @@ const LoginPage: React.FC = () => {
     const photos = [base64Image1, base64Image2, base64Image3];
     setPhotoArray(photos);
 
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/checkface`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/auth/checkface`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ faceArray: photos }),
@@ -241,7 +242,7 @@ const LoginPage: React.FC = () => {
       return;
     }
     displayLoadingOverlay();
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/login`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: loginUsername, password: loginPassword }),
@@ -291,8 +292,9 @@ const LoginPage: React.FC = () => {
       count++;
       if (count >= frameCount) {
         clearInterval(captureInterval);
-        setTwoFAErrorMessage("Test");
-        fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/login-2FA-Face`, {
+        setTwoFAIsError(false);
+        setTwoFAErrorMessage("Comparing face... Please wait...");
+        fetch(`${BACKEND_API_DOMAIN_NAME}/auth/login-2FA-Face`, {
           method: 'POST',
           credentials: "include",
           headers: { 'Content-Type': 'application/json' },
@@ -313,6 +315,7 @@ const LoginPage: React.FC = () => {
               );
               pageNavigator('/home');
             } else {
+              setTwoFAIsError(true);
               setTwoFAErrorMessage(result.reason);
               if(loginRetryAttemptsRef.current >= retryLimit)
               {
@@ -353,7 +356,7 @@ const LoginPage: React.FC = () => {
     }
     if (!confirmedUniqueUsername) {
       displayLoadingOverlay();
-      const usernameResponse = await fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/usernamecheck`, {
+      const usernameResponse = await fetch(`${BACKEND_API_DOMAIN_NAME}/auth/usernamecheck`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: signupUsername }),
@@ -370,7 +373,7 @@ const LoginPage: React.FC = () => {
       return;
     }
     displayLoadingOverlay();
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/signup`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -599,7 +602,9 @@ const LoginPage: React.FC = () => {
                 <br />
                 <div className="prompt-message-overlay">
                   {twoFAErrorMessage && (
-                    <p id="2FAErrorMessage" className="login_prompt_error">
+                    <p 
+                    id="2FAErrorMessage" 
+                    className={twoFAIsError ? "login_prompt_error" : "login_prompt_info"}>
                       {twoFAErrorMessage}
                     </p>
                   )}

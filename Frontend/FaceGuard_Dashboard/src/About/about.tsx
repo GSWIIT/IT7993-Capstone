@@ -12,7 +12,7 @@ const about: React.FC = () => {
   const BACKEND_API_DOMAIN_NAME = import.meta.env.VITE_BACKEND_API_DOMAIN_NAME;
 
   const checkSession = async () => {
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/check-session`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/auth/check-session`, {
       method: 'GET',
       credentials: "include"
     })
@@ -32,7 +32,7 @@ const about: React.FC = () => {
   
   const onLogOutClick = () => {
     console.log("Logging out...");
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/logoff-session`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/auth/logoff-session`, {
       method: 'GET',
       credentials: "include"
     })

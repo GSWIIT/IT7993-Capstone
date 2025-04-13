@@ -28,6 +28,21 @@ def get_self():
         return jsonify ({"success": False, "reason": "Internal server error: "  + str(e.args[0]) + "!"})
     
 #protected with login_required decorator function
+@account_bp.route('/get-self-group-links', methods=['GET'])
+@login_required
+def get_self_group_links():
+    try:
+        has_read_self = check_if_user_has_permission(session["username"], "FaceGuard Read: Self")
+
+        if(has_read_self):
+            user = contract.functions.getUser(session["username"]).call()
+            return jsonify ({"success": True, "reason": "User retrieved successfully.", "user": user})
+        else:
+            return jsonify ({"success": False, "reason": "User does not have permission to perform this action.", "user": None})
+    except Exception as e:
+        return jsonify ({"success": False, "reason": "Internal server error: "  + str(e.args[0]) + "!"})  
+    
+#protected with login_required decorator function
 @account_bp.route('/update-profile', methods=['POST'])
 @login_required
 def update_profile():

@@ -32,6 +32,8 @@ else
         }
         
         $overwrittenContent | Set-Content -Path "$($PSScriptRoot)\Backend\LoginApp\src\.env"
+        Write-Host "New contract address added to .env file successfully! To use the new contract, just restart the Flask app."
+        pause
     }
 }
 

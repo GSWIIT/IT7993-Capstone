@@ -7,9 +7,10 @@ import backgroundvideo from "../assets/backgroundvideo.mp4";
 const home: React.FC = () => {
   const navigator = useNavigate()
   const BACKEND_API_DOMAIN_NAME = import.meta.env.VITE_BACKEND_API_DOMAIN_NAME;
+  const [links, setLinks] = useState([""]);
 
   const checkSession = async () => {
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/check-session`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/auth/check-session`, {
       method: 'GET',
       credentials: "include"
     })
@@ -29,7 +30,7 @@ const home: React.FC = () => {
   
   const onLogOutClick = () => {
     console.log("Logging out...");
-    fetch(`https://${BACKEND_API_DOMAIN_NAME}/api/auth/logoff-session`, {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/auth/logoff-session`, {
       method: 'GET',
       credentials: "include"
     })
@@ -39,8 +40,21 @@ const home: React.FC = () => {
       })
   };
 
+  const getAllQuickURLLinks = () => {
+    fetch(`${BACKEND_API_DOMAIN_NAME}/permissions/get-all-quick-url-links`, {
+      method: 'GET',
+      credentials: "include"
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        console.log(result)
+        setLinks(result.array)
+      })
+  };
+
   useEffect(() => {
     checkSession()
+    getAllQuickURLLinks()
   }, [])
 
   return (
@@ -100,6 +114,21 @@ const home: React.FC = () => {
                 <Link to="/account">
                     <button className="account-btn">Go to Account</button>
                 </Link>
+
+              <div className="quick-link-container">
+                <h2>Quick Links</h2>
+                {links.map((link, index) => {
+                    const normalizedLink = link.startsWith("http://") || link.startsWith("https://")
+                    ? link
+                    : `https://${link}`;
+
+                  return (
+                  <button key={index} onClick={() => window.open(normalizedLink, "_blank")} type="button" className="quick-link-btn">
+                    {links[index]}
+                  </button>
+                );
+              })}
+              </div>
             </div>
         </div>
 
