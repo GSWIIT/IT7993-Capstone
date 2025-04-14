@@ -11,6 +11,15 @@ from dotenv import load_dotenv
 from waitress import serve
 import secrets
 
+def string_to_bool(string):
+    string = string.lower()
+    if string in ('true', '1', 'yes'):
+        return True
+    elif string in ('false', '0', 'no'):
+        return False
+    else:
+        raise ValueError('Invalid boolean string')
+
 load_dotenv()
 BACKEND_DOMAIN_NAME = os.getenv("BACKEND_DOMAIN_NAME")
 RUN_FLASK_LOCALLY = os.getenv("RUN_FLASK_LOCALLY")
@@ -50,7 +59,7 @@ app.register_blueprint(permissions_bp, url_prefix='/permissions')  # Prefix all 
 app.register_blueprint(account_bp, url_prefix='/account')
     
 if __name__ == '__main__':
-    if(RUN_FLASK_LOCALLY):
+    if(string_to_bool(RUN_FLASK_LOCALLY)):
         app.run(debug=True, port=5000) #run locally in dev mode
     else:
         serve(app, host="0.0.0.0", port=5000) #run app officially on network with Waitress
