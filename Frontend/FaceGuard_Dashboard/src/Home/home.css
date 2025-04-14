@@ -25,25 +25,7 @@ button.account-btn:hover {
     border: 1px solid rgb(144, 238, 213);
 }
 
-.quick-link-container {
-    border: 3px solid rgb(255, 255, 255);
-    margin: auto;
-    width: 80%;
-    height: 20%;
-}
-
 .quick-link-btn {
-    border-radius: 3px;
-    font-size: 1rem;
-    background-color: rgba(18,166,159,255);
-    border: 1px solid rgba(18,166,159,255);
-    color: white;
+   margin-left: 1rem;
 }
 
-button.quick-link-btn:hover {
-    background-color: rgb(144, 238, 213);
-    color: black;
-    border-radius: 10px;
-    cursor: pointer;
-    border: 1px solid rgb(144, 238, 213);
-}

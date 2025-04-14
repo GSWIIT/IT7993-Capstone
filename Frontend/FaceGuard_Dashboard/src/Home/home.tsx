@@ -111,12 +111,12 @@ const home: React.FC = () => {
 
             <div className="content-home">
                 <h1>Welcome to FaceGuard</h1>
-                <Link to="/account">
+                {/* <Link to="/account">
                     <button className="account-btn">Go to Account</button>
-                </Link>
+                </Link> */}
 
               <div className="quick-link-container">
-                <h2>Quick Links</h2>
+
                 {links.map((link, index) => {
                     const normalizedLink = link.startsWith("http://") || link.startsWith("https://")
                     ? link
