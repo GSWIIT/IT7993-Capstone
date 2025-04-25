@@ -54,7 +54,7 @@ w3 = Web3(Web3.HTTPProvider(ALCHEMY_API_URL))
 if w3.is_connected() == True:
     print("W3 Connection to contract successful!")
 else:
-    print("W3 connection failed!")
+    print("W3 connection failed! Please make sure the API URL is correct in the .env file!")
     exit
 
 #if script connected, we should be able to load contract into variable
@@ -68,8 +68,6 @@ w3.eth.default_account = owner_address
 
 #we must keep track of the nonce manually to allow for true asynchronous transactions
 current_nonce = w3.eth.get_transaction_count(owner_address)
-
-print("Nonce", current_nonce)
 
 def get_contract():
     return CONTRACT
@@ -87,6 +85,8 @@ def write_to_blockchain(w3_function, w3_arguments):
     global current_nonce #referencing the variable created above the function
 
     with tx_lock:
+        nonce = current_nonce
+        
         try:
             print(f"Estimating gas for function [{w3_function}] with arguments [{w3_arguments}]...")
             estimated_gas = w3_function(*w3_arguments).estimate_gas({"from": owner_address})
@@ -95,7 +95,6 @@ def write_to_blockchain(w3_function, w3_arguments):
             raise Exception("Blockchain exception caught! Error:" + str(e.args[0]) + "!")
         
         try:
-            nonce = current_nonce
             # Get the suggested gas price
             gas_price = w3.eth.gas_price  # Fetch the current network gas price dynamically
             max_priority_fee = w3.to_wei("4", "gwei")  # Priority fee (adjust based on congestion)
@@ -118,4 +117,6 @@ def write_to_blockchain(w3_function, w3_arguments):
             print("Transaction sent! Nonce variable updated, new nonce is:", current_nonce)
             return tx_hash
         except Exception as e:
-            raise Exception("Python exception occurred! Error:" + str(e.args[0]) + "!")
+            #make sure nonce is up to date, this may be the cause of the error.
+            current_nonce = w3.eth.get_transaction_count(owner_address)
+            raise Exception("Python exception occurred! Error:" + str(e.args[0]) + "! Please try again in a few moments...")

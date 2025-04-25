@@ -8,8 +8,6 @@ contract FaceGuard {
         string[] faceHashes;
         string accountCreationDate;
         string lastEditDate;
-        bool faceReenrollmentRequired;
-        bool passwordChangeRequired;
         bool enabled;
         string email;
         string fullName;
@@ -32,22 +30,25 @@ contract FaceGuard {
 
     address private owner;
 
-    event UserRegistered(string indexed username);
-    event UserLoggedIn(string indexed username);
-    event PasswordUpdated(string indexed username);
-    event PasswordChangeRequired(string indexed username);
-    event FaceHashUpdated(string indexed username, string[] oldFaceHashes, string[] newFaceHashes);
-    event UserEmailUpdated(string indexed username, string oldEmail, string newEmail);
-    event UserFullNameUpdated(string indexed username, string oldFullName, string newFullName);
-    event UserToggled(string indexed username, bool enabled);
-    event GroupCreated(string indexed groupName, string[] permissions);
-    event UserAddedToGroup(string indexed username, string indexed groupNameIndexed, string groupName);
-    event UserRemovedFromGroup(string indexed username, string indexed groupNameIndexed, string groupName);
-    event GroupPermissionsUpdated(string indexed groupName, string[] permissions);
-    event GroupNameUpdated(string indexed originalGroupName, string newGroupName);
-    event GroupRemoved(string indexed groupNameIndexed, string groupName);
-    event GroupAccessURLChanged(string indexed groupName, string oldAccessURL, string newAccessURL);
-    event UserRemoved(string username);
+    event UserRegistered(string indexed indexedUsername, string username);
+    event UserLoggedIn(string indexed indexedUsername, string username);
+    event PasswordUpdated(string indexed indexedUsername, string username);
+    event PasswordChangeRequired(string indexed indexedUsername, string username);
+    event FaceHashUpdated(string indexed indexedUsername, string username, string[] oldFaceHashes, string[] newFaceHashes);
+    event UserEmailUpdated(string indexed indexedUsername, string username, string oldEmail, string newEmail);
+    event UserFullNameUpdated(string indexed indexedUsername, string username, string oldFullName, string newFullName);
+    event UserToggled(string indexed indexedUsername, string username, bool enabled);
+    event UserRemoved(string indexed indexedUsername, string username);
+    event User_UserAddedToGroup(string indexed indexedUsername, string username, string groupName);
+    event User_UserRemovedFromGroup(string indexed indexedUsername, string username, string groupName);
+
+    event GroupCreated(string indexed indexedGroupName, string groupName, string[] permissions);
+    event Group_UserAddedToGroup(string indexed groupNameIndexed, string username, string groupName);
+    event Group_UserRemovedFromGroup(string indexed groupNameIndexed, string username, string groupName);
+    event GroupPermissionsUpdated(string indexed indexedGroupName, string groupName, string[] oldPermissions, string[] newPermissions);
+    event GroupNameUpdated(string indexed indexedGroupName, string oldGroupName, string newGroupName);
+    event GroupRemoved(string indexed indexedGroupName, string groupName);
+    event GroupAccessURLChanged(string indexed indexedGroupName, string groupName, string oldAccessURL, string newAccessURL);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only the contract owner can perform this action");
@@ -64,10 +65,10 @@ contract FaceGuard {
         string[4] memory userManagersPermissions = ["FaceGuard Create: Users", "FaceGuard Read: Users", "FaceGuard Update: Users", "FaceGuard Delete: Users"];
 
         //create groups
-        createGroup("Administrators", convertToDynamic(adminPermissions));
-        createGroup("Users", convertToDynamic(userPermissions));
-        createGroup("Group Managers", convertToDynamic(groupManagersPermissions));
-        createGroup("User Managers", convertToDynamic(userManagersPermissions));
+        createGroup("Administrators", convertToDynamic(adminPermissions), "");
+        createGroup("Users", convertToDynamic(userPermissions), "");
+        createGroup("Group Managers", convertToDynamic(groupManagersPermissions), "");
+        createGroup("User Managers", convertToDynamic(userManagersPermissions), "");
     }
 
     // Helper function to convert fixed-size array to dynamically-sized array
@@ -88,10 +89,10 @@ contract FaceGuard {
     }
 
     function registerUser(string memory username, string memory passwordHash, string[] memory initialFaceHashes, string memory creationDate) public onlyOwner {
-        users[username] = User(username, passwordHash, initialFaceHashes, creationDate, creationDate, false, false, true, "", "");
+        users[username] = User(username, passwordHash, initialFaceHashes, creationDate, creationDate, true, "", "");
         allUsernames.push(username);
         addUserToGroup("Users", username);
-        emit UserRegistered(username);
+        emit UserRegistered(username, username);
 
         //if this is the very first user in the smart contract, we will also add them to the administrators group.
         if (allUsernames.length == 1) {
@@ -101,45 +102,39 @@ contract FaceGuard {
     }
 
     function emitLoginSuccessLog(string memory username) public onlyOwner {
-        emit UserLoggedIn(username);
+        emit UserLoggedIn(username, username);
     }
 
-    function getUserFaceHashes(string memory username) public view returns (string[] memory) {
+    function getUserFaceHashes(string memory username) public view onlyOwner returns (string[] memory) {
         return users[username].faceHashes;
     }
 
     function updateUserPassword(string memory username, string memory newPasswordHash) public onlyOwner {
         users[username].passwordHash = newPasswordHash;
-        users[username].passwordChangeRequired = false;
-        emit PasswordUpdated(username);
+        emit PasswordUpdated(username, username);
     }
 
     function updateUserFaceHash(string memory username, string[] memory newFaceHashes) public onlyOwner {
         string[] memory oldFaceHashes = users[username].faceHashes;
         users[username].faceHashes = newFaceHashes;
-        emit FaceHashUpdated(username, oldFaceHashes, newFaceHashes);
+        emit FaceHashUpdated(username, username, oldFaceHashes, newFaceHashes);
     }
 
     function updateUserEmail(string memory username, string memory newEmail) public onlyOwner {
         string memory oldEmail = users[username].email;
         users[username].email = newEmail;
-        emit UserEmailUpdated(username, oldEmail, newEmail);
+        emit UserEmailUpdated(username, username, oldEmail, newEmail);
     }
 
     function updateUserFullName(string memory username, string memory newFullName) public onlyOwner {
         string memory oldFullName = users[username].fullName;
         users[username].fullName = newFullName;
-        emit UserFullNameUpdated(username, oldFullName, newFullName);
+        emit UserFullNameUpdated(username, username, oldFullName, newFullName);
     }
 
     function toggleUser(string memory username) public onlyOwner {
         users[username].enabled = !users[username].enabled;
-        emit UserToggled(username, users[username].enabled);
-    }
-
-    function requireUserPasswordChange(string memory username) public onlyOwner {
-        users[username].passwordChangeRequired = true;
-        emit PasswordChangeRequired(username);
+        emit UserToggled(username, username, users[username].enabled);
     }
 
     function checkIfUserExists(string memory username) public view returns (bool) {
@@ -147,9 +142,9 @@ contract FaceGuard {
         return bytes(users[username].username).length > 0;
     }
 
-    function getUser(string memory username) public view returns (string memory, string memory, string[] memory, string memory, string memory, bool, bool, string memory, string memory) {
+    function getUser(string memory username) public view returns (string memory, string memory, string[] memory, string memory, string memory, bool, string memory, string memory) {
         User memory user = users[username];
-        return (user.username, user.passwordHash, user.faceHashes, user.accountCreationDate, user.lastEditDate, user.faceReenrollmentRequired, user.enabled, user.email, user.fullName);
+        return (user.username, user.passwordHash, user.faceHashes, user.accountCreationDate, user.lastEditDate, user.enabled, user.email, user.fullName);
     }
 
     function getAllUsernames() public view returns (string[] memory) {
@@ -180,14 +175,15 @@ contract FaceGuard {
         // Remove from mapping
         delete users[username];
 
-        emit UserRemoved(username);
+        emit UserRemoved(username, username);
     }
 
     // Group management functions
-    function createGroup(string memory groupName, string[] memory permissions) public onlyOwner {
+    function createGroup(string memory groupName, string[] memory permissions, string memory newURL) public onlyOwner {
         groups[groupName] = Group(groupName, new string[](0), permissions, "");
         allGroupNames.push(groupName);
-        emit GroupCreated(groupName, permissions);
+        emit GroupCreated(groupName, groupName, permissions);
+        setGroupURL(groupName, newURL);
     }
 
     function addUserToGroup(string memory groupName, string memory username) public onlyOwner {
@@ -195,7 +191,8 @@ contract FaceGuard {
         require(bytes(users[username].username).length > 0, "User does not exist");
 
         groups[groupName].members.push(username);
-        emit UserAddedToGroup(username, groupName, groupName);
+        emit User_UserAddedToGroup(username, username, groupName);
+        emit Group_UserAddedToGroup(groupName, username, groupName);
     }
 
     function removeUserFromGroup(string memory groupName, string memory username) public onlyOwner {
@@ -222,7 +219,8 @@ contract FaceGuard {
             require(found, "User is not in this group");
         }
 
-        emit UserRemovedFromGroup(username, groupName, groupName);
+        emit User_UserRemovedFromGroup(username, username, groupName);
+        emit Group_UserRemovedFromGroup(groupName, username, groupName);
     }
 
     function getUserPermissions(string memory username) public view returns (string[] memory) {
@@ -316,25 +314,16 @@ contract FaceGuard {
                 }
             }
 
-            emit GroupNameUpdated(originalGroupName, newGroupName);
+            emit GroupNameUpdated(originalGroupName, originalGroupName, newGroupName);
         }
     }
 
     function setGroupURL(string memory groupName, string memory url) public onlyOwner {
         require(bytes(groups[groupName].name).length > 0, "Group does not exist");
 
-        // Define the core groups
-        string[4] memory coreGroups = ["Administrators", "Users", "Group Managers", "User Managers"];
-        
-        // Check if the groupName is in the core groups
-        for (uint i = 0; i < coreGroups.length; i++) {
-            require(keccak256(abi.encodePacked(groupName)) != keccak256(abi.encodePacked(coreGroups[i])),
-                    "Modifying core group permissions is not allowed");
-        }
-
         string memory oldUrl = groups[groupName].accessURL;
         groups[groupName].accessURL = url;
-        emit GroupAccessURLChanged(groupName, oldUrl, url);
+        emit GroupAccessURLChanged(groupName, groupName, oldUrl, url);
     }
 
     function setGroupPermissions(string memory groupName, string[] memory groupPermissions) public onlyOwner returns (string memory) {
@@ -349,8 +338,9 @@ contract FaceGuard {
                     "Modifying core group permissions is not allowed");
         }
 
+        string[] memory oldPermissions = groups[groupName].permissions;
         groups[groupName].permissions = groupPermissions;
-        emit GroupPermissionsUpdated(groups[groupName].name, groups[groupName].permissions);
+        emit GroupPermissionsUpdated(groups[groupName].name, groups[groupName].name, oldPermissions, groups[groupName].permissions);
         return groups[groupName].name;
     }
 

@@ -7,7 +7,13 @@ import backgroundvideo from "../assets/backgroundvideo.mp4";
 const home: React.FC = () => {
   const navigator = useNavigate()
   const BACKEND_API_DOMAIN_NAME = import.meta.env.VITE_BACKEND_API_DOMAIN_NAME;
-  const [links, setLinks] = useState([""]);
+
+  interface QuickLink {
+    name: string;
+    url: string;
+  }
+
+  const [links, setLinks] = useState<QuickLink[]>([]);
 
   const checkSession = async () => {
     fetch(`${BACKEND_API_DOMAIN_NAME}/auth/check-session`, {
@@ -48,7 +54,12 @@ const home: React.FC = () => {
       .then((response) => response.json())
       .then((result) => {
         console.log(result)
-        setLinks(result.array)
+        const mappedLinks: QuickLink[] = result.array.map((item: [string, string]) => ({
+          name: item[0],
+          url: item[1],
+        }));
+        setLinks(mappedLinks)
+        console.log(links)
       })
   };
 
@@ -118,13 +129,13 @@ const home: React.FC = () => {
               <div className="quick-link-container">
 
                 {links.map((link, index) => {
-                    const normalizedLink = link.startsWith("http://") || link.startsWith("https://")
-                    ? link
-                    : `https://${link}`;
+                    const normalizedLink = link.url.startsWith("http://") || link.url.startsWith("https://")
+                    ? link.url
+                    : `https://${link.url}`;
 
                   return (
-                  <button key={index} onClick={() => window.open(normalizedLink, "_blank")} type="button" className="quick-link-btn">
-                    {links[index]}
+                  <button key={index} onClick={() => window.open(normalizedLink.toString(), "_blank")} type="button" className="quick-link-btn">
+                    {links[index].name}
                   </button>
                 );
               })}

@@ -151,25 +151,29 @@ const LoginPage: React.FC = () => {
           setConfirmedPhotos(true);
           setShowFinalPhotoConfirmation(true);
           setShowCaptureContainer(false);
-        }
-        if (result.output) {
-          result.output.forEach((imageObj: any, index: number) => {
-            if (index < 3) {
-              let canvas: HTMLCanvasElement | null = null;
-              if (index === 0) canvas = canvas1Ref.current;
-              if (index === 1) canvas = canvas2Ref.current;
-              if (index === 2) canvas = canvas3Ref.current;
-              if (canvas) {
-                const context = canvas.getContext('2d');
-                const image = new Image();
-                image.onload = function () {
-                  context?.clearRect(0, 0, canvas!.width, canvas!.height);
-                  context?.drawImage(image, 0, 0, canvas!.width, canvas!.height);
-                };
-                image.src = 'data:image/png;base64,' + imageObj.image;
+
+          if (result.output) {
+            result.output.forEach((imageObj: any, index: number) => {
+              if (index < 3) {
+                let canvas: HTMLCanvasElement | null = null;
+                if (index === 0) canvas = canvas1Ref.current;
+                if (index === 1) canvas = canvas2Ref.current;
+                if (index === 2) canvas = canvas3Ref.current;
+                if (canvas) {
+                  const context = canvas.getContext('2d');
+                  const image = new Image();
+                  image.onload = function () {
+                    context?.clearRect(0, 0, canvas!.width, canvas!.height);
+                    context?.drawImage(image, 0, 0, canvas!.width, canvas!.height);
+                  };
+                  image.src = 'data:image/png;base64,' + imageObj.image;
+                }
               }
-            }
-          });
+            });
+          }
+        }
+        else {
+          displayLoadingPrompt(result.reason, result.success);
         }
       });
   };
@@ -313,7 +317,11 @@ const LoginPage: React.FC = () => {
                 'Face detected! Two Factor authentication successful.',
                 true
               );
+              video2FARef.current!.srcObject.getTracks().forEach(function(track) {
+                track.stop();
+              });
               pageNavigator('/home');
+              navigator.mediaDevices
             } else {
               setTwoFAIsError(true);
               setTwoFAErrorMessage(result.reason);

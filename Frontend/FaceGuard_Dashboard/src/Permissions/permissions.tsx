@@ -13,6 +13,7 @@ interface Group {
   name: string;
   permissions: string[];
   members: string[];
+  url: string;
 }
 
 interface User {
@@ -75,6 +76,7 @@ const Permissions: React.FC = () => {
       setGroupName(group.name);
       setPermissionsArray(group.permissions);
       setEditingGroup(group);
+      setGroupAccessURL(group.url);
     } else {
       setEditMode(false);
       setGroupName("");
@@ -106,11 +108,35 @@ const Permissions: React.FC = () => {
       })
       .then((response) => response.json())
       .then((result) => {
-        setIsLoading(false)
-        setServerResponseMessage(result.reason)
         if(result.success)
         {
           editSuccess = true
+          if(editSuccess)
+            {
+              fetch(`${BACKEND_API_DOMAIN_NAME}/permissions/update-group-access-url`, {
+                method: 'POST',
+                credentials: "include",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  groupName: groupName,
+                  accessURL: groupAccessURL
+                }),
+              })
+              .then((response) => response.json())
+              .then((result) => {
+                setIsLoading(false)
+                setServerResponseMessage(result.reason)
+                if(result.success)
+                {
+                  getGroups()
+                }
+              })
+            }
+        }
+        else
+        {
+          setIsLoading(false);
+          setServerResponseMessage(result.reason)
         }
       })
     }
@@ -123,7 +149,8 @@ const Permissions: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           groupName: groupName,
-          groupPermissions: permissionsArray
+          groupPermissions: permissionsArray,
+          groupURL: groupAccessURL
         }),
       })
       .then((response) => response.json())
@@ -134,30 +161,11 @@ const Permissions: React.FC = () => {
         {
           editSuccess = true
         }
+        getGroups()
       })
     }
 
-    if(editSuccess)
-    {
-      await fetch(`${BACKEND_API_DOMAIN_NAME}/permissions/update-group-access-url`, {
-        method: 'POST',
-        credentials: "include",
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          groupName: groupName,
-          accessURL: groupAccessURL
-        }),
-      })
-      .then((response) => response.json())
-      .then((result) => {
-        setIsLoading(false)
-        setServerResponseMessage(result.reason)
-        if(result.success)
-        {
-          getGroups()
-        }
-      })
-    }
+
   };
 
   const handleAddPermission = () => {
@@ -609,8 +617,8 @@ const Permissions: React.FC = () => {
                 </div>
                 <button onClick={handleAddPermission} className="add-permission-button">Add</button>
                 <div className="modal-buttons">
-                  <button onClick={handleCreateGroup} className="modal-submit">{editMode ? "Save Changes" : "Submit"}</button>
-                  <button onClick={() => toggleModal()} className="modal-cancel">Cancel</button>
+                  <button onClick={() => {handleCreateGroup()}} className="modal-submit">{editMode ? "Save Changes" : "Submit"}</button>
+                  <button onClick={() => {toggleModal()}} className="modal-cancel">Cancel</button>
                 </div>
               </div>
             </div>
@@ -626,7 +634,7 @@ const Permissions: React.FC = () => {
                 ) : (
                   <>
                     <p>{serverMessage}</p>
-                    <button onClick={hideLoadingOverlay} >OK</button>
+                    <button onClick={() => {hideLoadingOverlay()}} >OK</button>
                   </>
                 )}
               </div>

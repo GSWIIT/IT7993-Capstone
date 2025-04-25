@@ -8,6 +8,7 @@ if ($LASTEXITCODE -ne 0)
 {
     Write-Host "Error occurred while compiling smart contract!" -ForegroundColor Red
     pause
+    Set-Location "$($PSScriptRoot)"
     return
 }
 else 
@@ -32,7 +33,7 @@ else
         }
         
         $overwrittenContent | Set-Content -Path "$($PSScriptRoot)\Backend\LoginApp\src\.env"
-        Write-Host "New contract address added to .env file successfully! To use the new contract, just restart the Flask app."
+        Write-Host "New contract address added to .env file successfully! To use the new contract, just restart the Flask app." -ForegroundColor Green
         pause
     }
 }
