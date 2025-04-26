@@ -28,7 +28,7 @@ RUN_FLASK_LOCALLY = os.getenv("RUN_FLASK_LOCALLY")
 secret_key = secrets.token_urlsafe(32)
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True, origins=[f"http://{BACKEND_DOMAIN_NAME}", f"https://{BACKEND_DOMAIN_NAME}", "http://localhost:5173", "http://localhost"])
+CORS(app, supports_credentials=True, origins=[f"http://{BACKEND_DOMAIN_NAME}", f"https://{BACKEND_DOMAIN_NAME}", "http://localhost:5173", "http://localhost:5000"])
 
 #Initialize login session settings in the Flask app.
 app.config['SECRET_KEY'] = secret_key  # Change this in production
@@ -60,6 +60,6 @@ app.register_blueprint(account_bp, url_prefix='/account')
     
 if __name__ == '__main__':
     if(string_to_bool(RUN_FLASK_LOCALLY)):
-        app.run(debug=True, port=5000) #run locally in dev mode
+        app.run(debug=True, host="0.0.0.0", port=5000) #run locally in dev mode
     else:
         serve(app, host="0.0.0.0", port=5000) #run app officially on network with Waitress

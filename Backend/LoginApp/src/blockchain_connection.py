@@ -53,6 +53,7 @@ w3 = Web3(Web3.HTTPProvider(ALCHEMY_API_URL))
 
 if w3.is_connected() == True:
     print("W3 Connection to contract successful!")
+    print("Using smart contract address:", CONTRACT_ADDRESS)
 else:
     print("W3 connection failed! Please make sure the API URL is correct in the .env file!")
     exit

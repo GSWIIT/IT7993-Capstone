@@ -323,7 +323,7 @@
             if(confirmedUniqueUsername == false)
             {
                 displayLoadingOverlay()
-                let usernameResponse = await fetch("usernamecheck", {
+                let usernameResponse = await fetch("auth/usernamecheck", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username: username })
