@@ -72,3 +72,4 @@ npm install @tailwindcss/vite
 npm install react-scroll
 
 Write-Host "Script complete!"
+Set-Location "$($PSScriptRoot)"
